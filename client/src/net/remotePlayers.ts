@@ -52,6 +52,10 @@ export class RemotePlayers {
     this.entries.delete(sessionId);
   }
 
+  getRoot(sessionId: string): THREE.Group | undefined {
+    return this.entries.get(sessionId)?.root;
+  }
+
   tick(dt: number): void {
     for (const entry of this.entries.values()) {
       entry.pose = stepToward(entry.pose, entry.target, dt);
