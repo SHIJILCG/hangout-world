@@ -57,9 +57,10 @@ describe('validateMove', () => {
                               { x: WORLD_HALF + 50, y: 0, z: 0, heading: 0 });
     expect(next.x).toBe(WORLD_HALF);
   });
-  it('clamps y to [0, MAX_Y]', () => {
+  it('clamps y to [0, MAX_Y] (displacement small enough not to trip the step cap)', () => {
     expect(validateMove(at, { x: 0, y: -5, z: 8, heading: 0 }).y).toBe(0);
-    expect(validateMove(at, { x: 0, y: 99, z: 8, heading: 0 }).y).toBe(MAX_Y);
+    const nearTop: Pose = { x: 0, y: MAX_Y - 1, z: 8, heading: 0 };
+    expect(validateMove(nearTop, { x: 0, y: 99, z: 8, heading: 0 }).y).toBe(MAX_Y);
   });
   it('caps horizontal teleports at MAX_STEP toward the target', () => {
     const next = validateMove(at, { x: 10, y: 0, z: 8, heading: 0 });
@@ -70,5 +71,32 @@ describe('validateMove', () => {
     // 8 m/s at 15 Hz = 0.533 m
     const next = validateMove(at, { x: 0.53, y: 0, z: 8, heading: 0 });
     expect(next.x).toBeCloseTo(0.53, 5);
+  });
+
+  it('honors a custom horizontal displacement cap', () => {
+    const next = validateMove(at, { x: 1, y: 0, z: 8, heading: 0 }, 0.2);
+    expect(next.x).toBeCloseTo(0.2, 5);   // capped at custom maxStep, not MAX_STEP
+  });
+
+  it('lets a step under the custom cap through untouched', () => {
+    const next = validateMove(at, { x: 0.1, y: 0, z: 8, heading: 0 }, 0.2);
+    expect(next.x).toBeCloseTo(0.1, 5);
+  });
+
+  it('caps vertical displacement at the custom cap too', () => {
+    const from: Pose = { x: 0, y: 0, z: 8, heading: 0 };
+    const next = validateMove(from, { x: 0, y: 5, z: 8, heading: 0 }, 0.2);
+    expect(next.y).toBeCloseTo(0.2, 5);   // clamped toward target, not jumped to 5
+  });
+
+  it('caps vertical displacement at MAX_STEP by default (no third arg)', () => {
+    const from: Pose = { x: 0, y: 0, z: 8, heading: 0 };
+    const next = validateMove(from, { x: 0, y: 5, z: 8, heading: 0 });
+    expect(next.y).toBeCloseTo(MAX_STEP, 5);
+  });
+
+  it('defaults the third param to MAX_STEP when omitted (two-arg call unchanged)', () => {
+    const next = validateMove(at, { x: 10, y: 0, z: 8, heading: 0 });
+    expect(next.x).toBeCloseTo(MAX_STEP, 5);
   });
 });

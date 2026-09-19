@@ -58,7 +58,18 @@ function start(room: Room, name: string, colorIndex: number): void {
 
   const $ = getStateCallbacks(room);
   $(room.state).players.onAdd((p: any, sessionId: string) => {
-    if (sessionId === room.sessionId) return; // local player is predicted locally
+    if (sessionId === room.sessionId) {
+      // Local player is predicted locally, but the name may have been
+      // sanitized server-side (e.g. a profane name replaced with "Guest") —
+      // make sure the local tag reflects what everyone else actually sees.
+      if (p.name !== name) {
+        avatar.remove(myTag);
+        const sanitizedTag = createNameTag(p.name);
+        sanitizedTag.position.copy(myTag.position);
+        avatar.add(sanitizedTag);
+      }
+      return;
+    }
     remotes.add(sessionId, {
       name: p.name, colorIndex: p.colorIndex,
       x: p.x, y: p.y, z: p.z, heading: p.heading,

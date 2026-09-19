@@ -25,7 +25,7 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
 
-export function validateMove(current: Pose, target: unknown): Pose {
+export function validateMove(current: Pose, target: unknown, maxStep: number = MAX_STEP): Pose {
   if (typeof target !== 'object' || target === null) return { ...current };
   const t = target as Record<string, unknown>;
   const nums = [t.x, t.y, t.z, t.heading];
@@ -34,17 +34,24 @@ export function validateMove(current: Pose, target: unknown): Pose {
   }
   let x = clamp(t.x as number, -WORLD_HALF, WORLD_HALF);
   let z = clamp(t.z as number, -WORLD_HALF, WORLD_HALF);
-  const y = clamp(t.y as number, 0, MAX_Y);
+  let y = clamp(t.y as number, 0, MAX_Y);
   const heading = t.heading as number;
 
-  // Cap horizontal displacement at MAX_STEP toward the target.
+  // Cap horizontal displacement at maxStep toward the target.
   const dx = x - current.x;
   const dz = z - current.z;
   const dist = Math.hypot(dx, dz);
-  if (dist > MAX_STEP) {
-    const s = MAX_STEP / dist;
+  if (dist > maxStep) {
+    const s = maxStep / dist;
     x = current.x + dx * s;
     z = current.z + dz * s;
   }
+
+  // Cap vertical displacement at maxStep too, clamping y toward the target.
+  const dy = y - current.y;
+  if (Math.abs(dy) > maxStep) {
+    y = current.y + Math.sign(dy) * maxStep;
+  }
+
   return { x, y, z, heading };
 }
