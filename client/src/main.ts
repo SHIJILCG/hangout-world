@@ -9,6 +9,8 @@ import { buildMap, SPAWN } from './world/map';
 import { showJoinScreen } from './ui/joinScreen';
 import { joinWorld, AVATAR_COLORS } from './net/connection';
 import { RemotePlayers } from './net/remotePlayers';
+import { createChatPanel } from './ui/chatPanel';
+import { showBubble } from './player/chatBubble';
 
 const SEND_EVERY_N_STEPS = 4; // 60 Hz / 4 = 15 Hz
 
@@ -87,6 +89,28 @@ function start(room: Room, name: string, colorIndex: number): void {
     location.reload();
   });
 
+  // --- Chat ---
+  const chat = createChatPanel((text) => {
+    room.send('chat', { text });
+  });
+
+  room.onMessage('chat', ({ id, text }: { id: string; text: string }) => {
+    const sender = room.state.players.get(id);
+    const senderName = sender ? (sender.name as string) : '???';
+    const isSelf = id === room.sessionId;
+    chat.addMessage(senderName, text, isSelf);
+    const target = isSelf ? avatar : remotes.getRoot(id);
+    if (target) showBubble(target, text);
+  });
+
+  // Enter opens chat when the game has focus (never while already typing).
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !chat.isOpen) {
+      e.preventDefault();
+      chat.open();
+    }
+  });
+
   // --- Mouse: drag to orbit, wheel to zoom ---
   let dragging = false;
   renderer.domElement.addEventListener('mousedown', () => { dragging = true; });
@@ -108,7 +132,9 @@ function start(room: Room, name: string, colorIndex: number): void {
     last = now;
 
     while (accumulator >= STEP) {
-      const k = input.state;
+      const k = chat.isOpen
+        ? { moveX: 0, moveZ: 0, run: false, jump: false }
+        : input.state;
       const f = orbit.forward();
       const r = orbit.right();
       const move: MoveInput = {
