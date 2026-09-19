@@ -10,7 +10,13 @@ const SKIP_ROLES = new Set(['flowers', 'river', 'river-detail', 'tree-canopy', '
 // WHOLE-MESH AABB blockers.
 const BLOCKER_ROLES = new Set(['fence', 'rock', 'ruin', 'ruin-rubble', 'tree-trunk', 'bridge-parapet', 'bridge-structure']);
 // WALKABLE axis-aligned: whole-mesh AABB in X/Z, but forced Y range.
-const AXIS_WALKABLE_ROLES = new Set(['ruin-step', 'ruin-crown']);
+// 'ruin-step' piles genuinely start at ground level, so minY is forced to 0
+// (clean stack, ignoring tiny inter-block gaps). 'ruin-crown' is an elevated
+// slab (real geometry bottom ~3.35) — forcing minY to 0 there would turn it
+// into a ground-to-top solid pillar and block the walk-through arch passage
+// beneath it, so its real geometry minY is kept.
+const GROUND_UP_WALKABLE_ROLES = new Set(['ruin-step']);
+const ELEVATED_WALKABLE_ROLES = new Set(['ruin-crown']);
 
 // The arch voussoirs and the stonework above them share role 'ruin' with the
 // (blocking) piers/columns, but must stay open so the arch passage is walkable.
@@ -98,9 +104,14 @@ export function buildCollisionManifest() {
       if (SKIP_ROLES.has(role) || mesh.extras.visualOnly) continue;
       if (role === 'ruin' && RULED_RUIN_NAMES.has(mesh.name)) continue;
       if (BLOCKER_ROLES.has(role)) { boxes.push(meshAABB(mesh)); continue; }
-      if (AXIS_WALKABLE_ROLES.has(role)) {
+      if (GROUND_UP_WALKABLE_ROLES.has(role)) {
         const aabb = meshAABB(mesh);
         boxes.push({ ...aabb, minY: 0, maxY: mesh.extras.top });
+        continue;
+      }
+      if (ELEVATED_WALKABLE_ROLES.has(role)) {
+        const aabb = meshAABB(mesh);
+        boxes.push({ ...aabb, minY: aabb.minY, maxY: mesh.extras.top });
         continue;
       }
       if (role === 'bridge-deck') { boxes.push(...bridgeDeckBoxes()); continue; }

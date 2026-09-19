@@ -191,6 +191,27 @@ test('collision manifest: ruin route climbs in 0.3m steps to a crown that touche
   }
 });
 
+test('collision manifest: ruin crown box keeps its elevated bottom (arch passage stays open)', async () => {
+  const manifest = await loadManifest();
+  const scene = buildMeadow();
+  try {
+    const crownMesh = scene.meshes.find((m) => m.extras.role === 'ruin-crown');
+    crownMesh.geometry.computeBoundingBox();
+    const b = crownMesh.geometry.boundingBox;
+    const fp = { minX: b.min.x, maxX: b.max.x, minZ: b.min.z, maxZ: b.max.z };
+    const crownBox = manifest.boxes.find((box) => Math.abs(box.minX - fp.minX) < 0.01 && Math.abs(box.maxX - fp.maxX) < 0.01
+      && Math.abs(box.minZ - fp.minZ) < 0.01 && Math.abs(box.maxZ - fp.maxZ) < 0.01);
+    assert.ok(crownBox, 'missing collision box for ruin crown');
+    // Guards this regression class: an elevated walkable (real geometry bottom
+    // ~3.35) must never be forced down to ground level, which would turn it
+    // into a solid pillar blocking the walk-through passage underneath.
+    assert.ok(crownBox.minY > 2, `ruin-crown box minY too low, would block the arch passage: ${crownBox.minY}`);
+    assert.equal(crownBox.maxY, 3.6);
+  } finally {
+    for (const mesh of scene.meshes) mesh.geometry.dispose();
+  }
+});
+
 test('collision manifest: spawn clearing at (0,8) r=1 is free of boxes and flat', async () => {
   const manifest = await loadManifest();
   const cx = 0, cz = 8, radius = 1;
