@@ -45,6 +45,7 @@ The local player is NEVER rendered from server state — `main.ts` runs full loc
 - `server/vitest.config.ts` forces `pool: 'threads'`: `@colyseus/tools`' `listen()` calls `process.send('ready')`, which corrupts Vitest's default forks-pool IPC.
 - `server/tsconfig.json` needs `experimentalDecorators: true` and `useDefineForClassFields: false` for `@colyseus/schema` decorators.
 - Unconsented disconnects get a 15 s `allowReconnection` grace (the avatar freezes for others until it expires); consented leaves are removed immediately.
+- **Colyseus kicks clients on unregistered message types in production** (verified in @colyseus/core Room.js `__no_message_handler`: dev mode only warns, production calls `client.leave(WS_CLOSE_WITH_ERROR)`). Consequence: a NEW client sending a message type an OLD deployed server doesn't handle disconnects the player (who then hits the reload-to-join-screen recovery). Mixed-version windows during deploys are NOT graceful — when adding a message type, expect this until the server deploy lands, and consider deploying the server before the client for new types.
 
 ### Known deferred items (ruled, not forgotten)
 - `joinOrCreate` can spin up a second world instance past 20 players instead of a "world full" message — deferred to Phase 5.
