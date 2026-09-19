@@ -108,6 +108,7 @@ function start(room: Room, name: string, colorIndex: number): void {
     if (e.key === 'Enter' && !chat.isOpen) {
       e.preventDefault();
       chat.open();
+      input.clear();
     }
   });
 

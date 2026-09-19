@@ -123,6 +123,45 @@ describe('WorldRoom', () => {
     expect(p.x).toBeLessThan(20 * MAX_STEP); // sanity: strictly better than the naive cap
   });
 
+  it('never regresses x after the budget goes negative (retrograde teleport exploit)', async () => {
+    // Drain the budget with two +1.5m moves (3m budget exhausted, landing at
+    // ~0 once validateMove's own clamping is accounted for). Then keep
+    // sending moves further away (diagonal, so the hypot/scale arithmetic
+    // isn't perfectly clean and genuinely underflows the budget below zero
+    // via float rounding, exactly as the bug describes). A broken clamp lets
+    // that negative budget make validateMove step AWAY from the target, and
+    // each subsequent message *doubles* the negative budget — a runaway
+    // teleport backward. x must never regress. Intermediate reads happen
+    // right after waitForMessage (whose handler runs synchronously) rather
+    // than waitForNextPatch, so we don't inject extra real wall-clock time
+    // that would mask the bug with legitimate budget accrual.
+    const room = await colyseus.createRoom('world', {});
+    const client = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+
+    let x = SPAWN.x;
+    let z = SPAWN.z;
+    for (let i = 0; i < 2; i++) {
+      x += 1.5;
+      client.send('move', { x, y: 0, z, heading: 0 });
+      await room.waitForMessage('move');
+    }
+    const xAfterDrain = room.state.players.get(client.sessionId)!.x;
+
+    let lastX = xAfterDrain;
+    for (let i = 0; i < 60; i++) {
+      x += 1.5;
+      z += 1.5;
+      client.send('move', { x, y: 0, z, heading: 0 });
+      await room.waitForMessage('move');
+      const currentX = room.state.players.get(client.sessionId)!.x;
+      expect(currentX).toBeGreaterThanOrEqual(lastX);   // never regress
+      lastX = currentX;
+    }
+
+    expect(lastX).toBeGreaterThanOrEqual(xAfterDrain);
+    expect(lastX).toBeLessThan(SPAWN.x + 5);
+  });
+
   it('removes the player on consented leave', async () => {
     const room = await colyseus.createRoom('world', {});
     const client = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });

@@ -37,10 +37,11 @@ export function createChatPanel(onSend: (text: string) => void): ChatPanel {
   let openState = false;
 
   const close = () => {
+    if (!openState) return;   // re-entrancy guard: blur() below re-fires the blur listener
+    openState = false;
     inputEl.value = '';
     inputEl.classList.add('hidden');
     inputEl.blur();
-    openState = false;
   };
 
   inputEl.addEventListener('keydown', (e) => {
@@ -54,6 +55,10 @@ export function createChatPanel(onSend: (text: string) => void): ChatPanel {
     }
   });
   inputEl.addEventListener('keyup', (e) => e.stopPropagation());
+  // Clicking the canvas (or anywhere else) blurs the input without going
+  // through Enter/Esc — make sure that also closes the panel, so movement
+  // input resumes and Enter/Esc can reopen it.
+  inputEl.addEventListener('blur', () => { if (openState) close(); });
 
   return {
     get isOpen() { return openState; },

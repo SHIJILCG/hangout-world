@@ -27,6 +27,11 @@ export class KeyboardInput {
     };
   }
 
+  /** Forget all held keys — call when focus moves to a UI that swallows keyups. */
+  clear(): void {
+    this.down.clear();
+  }
+
   dispose(): void {
     this.target.removeEventListener('keydown', this.onKeyDown);
     this.target.removeEventListener('keyup', this.onKeyUp);

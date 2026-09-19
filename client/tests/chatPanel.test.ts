@@ -63,6 +63,15 @@ describe('createChatPanel', () => {
     expect(seen).not.toHaveBeenCalled();
   });
 
+  it('blurring the input (e.g. clicking the canvas) closes the panel', () => {
+    const panel = createChatPanel(() => {});
+    panel.open();
+    expect(panel.isOpen).toBe(true);
+    input().dispatchEvent(new FocusEvent('blur'));
+    expect(panel.isOpen).toBe(false);
+    expect(input().classList.contains('hidden')).toBe(true);
+  });
+
   it('renders messages and marks own lines', () => {
     const panel = createChatPanel(() => {});
     panel.addMessage('Alice', 'hi', false);

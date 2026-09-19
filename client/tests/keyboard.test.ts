@@ -53,4 +53,15 @@ describe('KeyboardInput', () => {
     press('KeyW');
     expect(input.state.moveZ).toBe(0);
   });
+
+  it('clear() forgets all held keys, and keys can re-latch afterward', () => {
+    const input = new KeyboardInput();
+    press('KeyW');
+    expect(input.state.moveZ).toBe(1);
+    input.clear();
+    expect(input.state).toEqual({ moveX: 0, moveZ: 0, run: false, jump: false });
+    press('KeyW');
+    expect(input.state.moveZ).toBe(1);
+    input.dispose();
+  });
 });

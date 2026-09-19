@@ -35,8 +35,8 @@ export class WorldRoom extends Room<WorldState> {
       entry.lastAt = now;
 
       const current = { x: p.x, y: p.y, z: p.z, heading: p.heading };
-      const next = validateMove(current, message, entry.budget);
-      entry.budget -= Math.hypot(next.x - current.x, next.z - current.z);
+      const next = validateMove(current, message, Math.max(0, entry.budget));
+      entry.budget = Math.max(0, entry.budget - Math.hypot(next.x - current.x, next.z - current.z));
       this.moveBudget.set(client.sessionId, entry);
 
       p.x = next.x;
