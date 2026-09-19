@@ -16,7 +16,12 @@ const SEND_EVERY_N_STEPS = 4; // 60 Hz / 4 = 15 Hz
 
 showJoinScreen(async (name, colorIndex) => {
   const room = await joinWorld(name, colorIndex);
-  await start(room, name, colorIndex);
+  try {
+    await start(room, name, colorIndex);
+  } catch (err) {
+    room.leave();
+    throw err;
+  }
 });
 
 async function start(room: Room, name: string, colorIndex: number): Promise<void> {
@@ -29,9 +34,9 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
-  scene.fog = new THREE.Fog(0x87ceeb, 40, 90);
+  scene.fog = new THREE.Fog(0x87ceeb, 120, 320);
 
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;

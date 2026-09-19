@@ -36,8 +36,8 @@ The local player is NEVER rendered from server state — `main.ts` runs full loc
 
 ### Movement/physics conventions
 - Heading = `Math.atan2(dirX, dirZ)`; avatars face +z at heading 0, so `mesh.rotation.y = heading`. Task code in three places depends on this — don't flip the atan2 arguments.
-- Collision is ground plane + AABB boxes with step-up (`STEP_HEIGHT` 0.35 m). Slopes don't exist; stairs are stacks of boxes with rise ≤ STEP_HEIGHT.
-- In `world/map.ts`, every solid visual and its collision Box come from the single `solid()` helper with the same numbers — always add solids through it so visuals and physics can't drift. Tree canopies are deliberately non-colliding (trunk only).
+- Collision is a heightfield ground (hills, riverbed) plus AABB boxes with step-up (`STEP_HEIGHT` 0.35 m), resolved by `CollisionWorld`. Slopes are approximated by the heightfield grid; stairs (e.g. the ruin) are stacks of boxes with rise ≤ STEP_HEIGHT.
+- The world is a generated meadow (80×80, `WORLD_HALF` 40 — must match on client `world/map.ts` and server `constants.ts`): a GLB model (`client/public/models/fantasy-meadow.glb`) plus a collision manifest (`client/src/world/meadow-collision.json`, a heightfield grid + boxes) produced together by `npm run generate:meadow` (from `client/scripts/meadow/generate.mjs`) — regenerate both whenever the meadow layout changes, then run `npm run validate:meadow` and `npm run test:meadow` to check the manifest (bridge/ruin climbability, spawn clearing, border walls) before committing. `MIN_Y` is −1 so wading in the river (knee-deep, comes back out) is ruled in, not a bug. The ruin's crown box deliberately keeps an elevated bottom face open — that's the arch passage, not a ceiling; don't "fix" it flat. There is no hand-authored `solid()` helper anymore — all meadow geometry and collision come from the generator/manifest pair, so edit the generator, not `map.ts`, to change the layout.
 - Avatar groups have their origin at the FEET (y=0 at ground), matching `PlayerState.y`.
 
 ### Server specifics that look wrong but are load-bearing
