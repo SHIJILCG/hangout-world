@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CollisionWorld, STEP_HEIGHT, type Box } from '../src/world/collision';
+import { CollisionWorld, type Box } from '../src/world/collision';
 
 const R = 0.4;   // player radius used in tests
 const H = 1.7;   // player height used in tests
