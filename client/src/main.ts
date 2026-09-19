@@ -16,10 +16,10 @@ const SEND_EVERY_N_STEPS = 4; // 60 Hz / 4 = 15 Hz
 
 showJoinScreen(async (name, colorIndex) => {
   const room = await joinWorld(name, colorIndex);
-  start(room, name, colorIndex);
+  await start(room, name, colorIndex);
 });
 
-function start(room: Room, name: string, colorIndex: number): void {
+async function start(room: Room, name: string, colorIndex: number): Promise<void> {
   // --- Renderer / scene ---
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -41,7 +41,7 @@ function start(room: Room, name: string, colorIndex: number): void {
   });
 
   // --- World + local player ---
-  const map = buildMap();
+  const map = await buildMap();
   scene.add(map.group);
 
   const avatar = createAvatar(AVATAR_COLORS[colorIndex] ?? AVATAR_COLORS[0]);
