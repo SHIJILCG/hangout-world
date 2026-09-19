@@ -15,7 +15,7 @@
 - All code is TypeScript with `"strict": true`.
 - Client must remain a purely static site (no server code in this phase).
 - Target 60 fps on a mid-range laptop; desktop browsers only (Chrome/Firefox/Edge).
-- Game logic modules (`input/`, `world/collision.ts`, `player/controller.ts`, `camera/orbit.ts`) must not import `three` — they are pure math and must run under plain Node in Vitest.
+- Game logic modules (`input/`, `world/collision.ts`, `player/controller.ts`, `camera/orbit.ts`) must not import `three`. `collision.ts`, `controller.ts`, and `orbit.ts` are pure math and run under plain Node in Vitest; `input/keyboard.ts` uses DOM events only and is tested under happy-dom (per-file `@vitest-environment` pragma).
 - Map uses only primitive geometry in this phase (free GLTF assets arrive in Phase 5 polish).
 - Repo layout: client code under `client/`; the Colyseus server (Phase 2) will live under `server/`.
 - Run all `npm` commands inside `client/`.
