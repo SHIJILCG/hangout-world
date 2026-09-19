@@ -1022,9 +1022,14 @@ export function buildMap(): WorldMap {
   group.add(plaza);
 
   // --- Central stage platform (1.5 m high) with stairs on its +z side ---
+  // Stage occupies z ∈ [-17, -11]. The stairs descend AWAY from the stage
+  // (+z direction): the tallest step (top 1.5 = stage height) sits flush
+  // against the stage face at z = -11, the lowest step is nearest the
+  // plaza. Steps must never overlap the stage footprint — the stage's
+  // tall collision box would push the player off mid-climb.
   solid(0, -14, 10, 1.5, 6, 0x8a6f4d);
-  const rise = STEP_HEIGHT - 0.05;   // 0.3 m per step
-  stairs(0, -10.5, 4, 5, rise, 0.8, 0x9c8258);
+  const rise = STEP_HEIGHT - 0.05;   // 0.3 m per step, climbable without jumping
+  stairs(0, -7.4, 4, 5, rise, 0.8, 0x9c8258);   // step 5 spans z ∈ [-11.0, -10.2]
 
   // --- Scattered jump platforms ---
   solid(12, 4, 3, 0.6, 3, 0x7f8c9b);
