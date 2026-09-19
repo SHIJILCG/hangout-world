@@ -49,7 +49,7 @@ The local player is NEVER rendered from server state — `main.ts` runs full loc
 ### Known deferred items (ruled, not forgotten)
 - `joinOrCreate` can spin up a second world instance past 20 players instead of a "world full" message — deferred to Phase 5.
 - The move-rate limiter uses wall-clock dt, so a legit client's catch-up burst after a frame hitch can be briefly clamped (transient remote-view rubber-banding); the planned fix is a token-bucket allowance, first hardening item of Phase 3.
-- `serverUrl()` hardcodes port 2567 — deploy (Phase 5) needs an env-based URL.
+- `serverUrl()` honors a build-time `VITE_SERVER_URL` (deployed builds); without it, falls back to `ws://<hostname>:2567` for local/LAN dev. Server deploys via `render.yaml` (Render free plan; `@colyseus/tools` honors Render's `PORT`); client deploys on Cloudflare Pages (root `client/`, build `npm run build`, output `dist`, env `VITE_SERVER_URL=wss://<render-url>`).
 
 ## Process conventions in this repo
 

@@ -1,0 +1,10 @@
+# Render blueprint: deploys the Colyseus game server on the free plan.
+# In the Render dashboard: New + -> Blueprint -> select this repo -> Apply.
+services:
+  - type: web
+    name: hangout-world-server
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
