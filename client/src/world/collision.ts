@@ -3,6 +3,13 @@ export interface Box {
   maxX: number; maxY: number; maxZ: number;
 }
 
+export interface HeightGrid {
+  min: number;       // world coord of heights[0] in both x and z
+  step: number;      // grid spacing
+  size: number;      // samples per side
+  heights: number[]; // row-major, z-then-x: heights[zi * size + xi] at (min+xi*step, min+zi*step)
+}
+
 export const STEP_HEIGHT = 0.35;
 
 function circleOverlapsBox(x: number, z: number, radius: number, b: Box): boolean {
@@ -14,10 +21,36 @@ function circleOverlapsBox(x: number, z: number, radius: number, b: Box): boolea
 }
 
 export class CollisionWorld {
-  constructor(private boxes: Box[], private groundY = 0) {}
+  constructor(private boxes: Box[], private ground: number | HeightGrid = 0) {}
+
+  groundAt(x: number, z: number): number {
+    const g = this.ground;
+    if (typeof g === 'number') return g;
+
+    const { min, step, size, heights } = g;
+    const fx = Math.max(0, Math.min(size - 1, (x - min) / step));
+    const fz = Math.max(0, Math.min(size - 1, (z - min) / step));
+
+    const xi0 = Math.floor(fx);
+    const zi0 = Math.floor(fz);
+    const xi1 = Math.min(size - 1, xi0 + 1);
+    const zi1 = Math.min(size - 1, zi0 + 1);
+
+    const tx = fx - xi0;
+    const tz = fz - zi0;
+
+    const h00 = heights[zi0 * size + xi0];
+    const h10 = heights[zi0 * size + xi1];
+    const h01 = heights[zi1 * size + xi0];
+    const h11 = heights[zi1 * size + xi1];
+
+    const h0 = h00 + (h10 - h00) * tx;
+    const h1 = h01 + (h11 - h01) * tx;
+    return h0 + (h1 - h0) * tz;
+  }
 
   supportHeightAt(x: number, z: number, footY: number, radius: number): number {
-    let support = this.groundY;
+    let support = this.groundAt(x, z);
     for (const b of this.boxes) {
       if (b.maxY <= footY + STEP_HEIGHT + 1e-6 &&
           b.maxY > support &&

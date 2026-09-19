@@ -61,3 +61,48 @@ describe('resolveHorizontal', () => {
     expect(w.resolveHorizontal(0, 0, 0, R, H)).toEqual({ x: 0, z: 0 });
   });
 });
+
+describe('heightfield ground', () => {
+  // 3x3 grid over [-1, 1]: a simple slope in x, flat in z.
+  const grid = {
+    min: -1, step: 1, size: 3,
+    heights: [
+      0, 0.5, 1,   // z = -1 row: x = -1, 0, 1
+      0, 0.5, 1,   // z = 0
+      0, 0.5, 1,   // z = 1
+    ],
+  };
+  const w = new CollisionWorld([], grid);
+
+  it('returns exact heights at grid nodes', () => {
+    expect(w.groundAt(-1, -1)).toBe(0);
+    expect(w.groundAt(0, 0)).toBe(0.5);
+    expect(w.groundAt(1, 1)).toBe(1);
+  });
+
+  it('interpolates between nodes', () => {
+    expect(w.groundAt(0.5, 0)).toBeCloseTo(0.75, 5);
+    expect(w.groundAt(-0.5, 0.5)).toBeCloseTo(0.25, 5);
+  });
+
+  it('clamps outside the grid to the edge values', () => {
+    expect(w.groundAt(5, 0)).toBe(1);
+    expect(w.groundAt(-5, -5)).toBe(0);
+  });
+
+  it('supportHeightAt uses the heightfield as base support', () => {
+    expect(w.supportHeightAt(0.5, 0, 1, 0.4)).toBeCloseTo(0.75, 5);
+  });
+
+  it('a box on sloped ground still wins when higher and steppable', () => {
+    const box = { minX: -0.4, minY: 0, minZ: -0.4, maxX: 0.4, maxY: 0.7, maxZ: 0.4 };
+    const world = new CollisionWorld([box], grid);
+    expect(world.supportHeightAt(0, 0, 0.5, 0.4)).toBeCloseTo(0.7, 5); // 0.7 ≤ 0.5+0.35
+  });
+
+  it('flat-number ground still works (back-compat)', () => {
+    const flat = new CollisionWorld([], 2);
+    expect(flat.groundAt(12, -7)).toBe(2);
+    expect(flat.supportHeightAt(12, -7, 2, 0.4)).toBe(2);
+  });
+});
