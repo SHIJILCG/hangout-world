@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { createAvatar } from '../player/avatar';
+import { animateAvatar, createAvatar, disposeAvatar } from '../player/avatar';
 import { createNameTag } from '../player/nametag';
 import { PLAYER_HEIGHT } from '../player/controller';
 import { AVATAR_COLORS } from './connection';
 import { stepToward, type Pose } from './interpolation';
+import { hideBubble } from '../player/chatBubble';
 
 export interface RemoteInfo {
   name: string;
@@ -23,6 +24,9 @@ interface Entry {
 export class RemotePlayers {
   readonly group = new THREE.Group();
   private entries = new Map<string, Entry>();
+  private time = 0;
+
+  constructor(private isGrounded: (pose: Pose) => boolean = () => true) {}
 
   add(sessionId: string, info: RemoteInfo): void {
     if (this.entries.has(sessionId)) this.remove(sessionId);
@@ -49,6 +53,8 @@ export class RemotePlayers {
     const entry = this.entries.get(sessionId);
     if (!entry) return;
     this.group.remove(entry.root);
+    hideBubble(entry.root);
+    disposeAvatar(entry.root);
     this.entries.delete(sessionId);
   }
 
@@ -57,10 +63,18 @@ export class RemotePlayers {
   }
 
   tick(dt: number): void {
+    this.time += dt;
     for (const entry of this.entries.values()) {
+      const previous = entry.pose;
       entry.pose = stepToward(entry.pose, entry.target, dt);
       entry.root.position.set(entry.pose.x, entry.pose.y, entry.pose.z);
       entry.root.rotation.y = entry.pose.heading;
+      const speed = Math.min(8, Math.hypot(entry.pose.x - previous.x, entry.pose.z - previous.z) / dt);
+      animateAvatar(entry.root, this.time, speed, this.isGrounded(entry.pose), dt);
     }
+  }
+
+  clear(): void {
+    for (const id of this.entries.keys()) this.remove(id);
   }
 }

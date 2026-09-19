@@ -6,5 +6,6 @@ services:
     runtime: node
     rootDir: server
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci && npm run build
     startCommand: npm start
+    healthCheckPath: /health

@@ -1268,5 +1268,4 @@ git commit -m "feat: wire world, avatar, camera, and input into playable single-
 ## What comes next (separate plans, written after this phase ships)
 
 - **Phase 2:** Colyseus server in `server/`, join screen, remote players with interpolation, name tags. Reuses `PlayerState` (x, y, z, heading) as the sync payload and `createAvatar` for remote players.
-- **Phase 3:** text chat panel + bubbles. **Phase 4:** LiveKit proximity voice. **Phase 5:** character models/animations + deploy.
-
+- **Phase 3:** text chat panel + bubbles. **Phase 4:** retired (voice removed by owner on 2026-09-20). **Phase 5:** character models/animations + deploy.

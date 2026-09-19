@@ -756,5 +756,4 @@ git commit -m "feat: wire chat panel, bubbles, and typing-safe input gating"
 
 ## What comes next (separate plans)
 
-- **Phase 4:** LiveKit proximity voice. **Phase 5:** character models/animations, mute/block, full-room UX, reconnect flow, remaining hardening (connection-level message-rate limiter, better profanity matcher).
-
+- **Phase 4:** retired (voice removed by owner on 2026-09-20). **Phase 5:** character models/animations, text blocking, full-room UX, reconnect flow, remaining hardening (connection-level message-rate limiter, better profanity matcher).

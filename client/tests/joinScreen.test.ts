@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { showJoinScreen } from '../src/ui/joinScreen';
+import { WorldFullError } from '../src/net/connection';
 
 function el<T extends HTMLElement>(sel: string): T {
   const found = document.querySelector<T>(sel);
@@ -11,6 +12,28 @@ function el<T extends HTMLElement>(sel: string): T {
 beforeEach(() => { document.body.innerHTML = ''; });
 
 describe('showJoinScreen', () => {
+  it('explains text chat without offering microphone or voice controls', () => {
+    showJoinScreen(async () => {});
+    expect(el('#join-screen').textContent).toContain('Press Enter in the world to chat');
+    expect(el('#join-screen').textContent).not.toMatch(/microphone|voice/i);
+  });
+  it('automatically retries a full world and lets the user cancel waiting', async () => {
+    vi.useFakeTimers();
+    try {
+      const onJoin = vi.fn().mockRejectedValue(new WorldFullError());
+      showJoinScreen(onJoin);
+      el<HTMLInputElement>('#join-name').value = 'Alice';
+      el<HTMLButtonElement>('#join-btn').click();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(el('#join-error').textContent).toContain('full');
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(onJoin).toHaveBeenCalledTimes(2);
+      el<HTMLButtonElement>('#join-cancel').click();
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(onJoin).toHaveBeenCalledTimes(2);
+      expect(el<HTMLButtonElement>('#join-btn').disabled).toBe(false);
+    } finally { vi.useRealTimers(); }
+  });
   it('renders name input, 6 swatches, and a join button', () => {
     showJoinScreen(async () => {});
     expect(el('#join-screen')).toBeTruthy();

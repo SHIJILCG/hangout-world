@@ -39,14 +39,16 @@ export async function buildMap(): Promise<WorldMap> {
   });
 
   // --- Lighting ---
-  group.add(new THREE.HemisphereLight(0xbfd9ff, 0x557744, 0.9));
-  const sun = new THREE.DirectionalLight(0xfff2d9, 1.6);
-  sun.position.set(20, 35, 15);
+  group.add(new THREE.HemisphereLight(0xe7f5ff, 0x789158, 1.6));
+  const sun = new THREE.DirectionalLight(0xfff0d5, 2);
+  sun.position.set(-32, 60, 25);
   sun.castShadow = true;
-  sun.shadow.camera.left = -45;
-  sun.shadow.camera.right = 45;
-  sun.shadow.camera.top = 45;
-  sun.shadow.camera.bottom = -45;
+  sun.shadow.camera.left = -60;
+  sun.shadow.camera.right = 60;
+  sun.shadow.camera.top = 60;
+  sun.shadow.camera.bottom = -60;
+  sun.shadow.camera.far = 170;
+  sun.shadow.normalBias = 0.06;
   sun.shadow.mapSize.set(2048, 2048);
   group.add(sun);
 

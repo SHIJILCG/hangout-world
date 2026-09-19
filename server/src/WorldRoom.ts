@@ -1,4 +1,4 @@
-import { Room, type Client } from 'colyseus';
+import { Room, ServerError, type Client } from 'colyseus';
 import { WorldState, PlayerState } from './schema';
 import { sanitizeName, clampColorIndex, validateMove, sanitizeChat } from './validation';
 import { SPAWN, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP, CHAT_BURST, CHAT_REFILL_MS } from './constants';
@@ -6,6 +6,7 @@ import { SPAWN, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP
 interface JoinOptions { name?: unknown; colorIndex?: unknown }
 
 export class WorldRoom extends Room<WorldState> {
+  private static active: WorldRoom | undefined;
   maxClients = MAX_CLIENTS;
   state = new WorldState();
 
@@ -17,10 +18,12 @@ export class WorldRoom extends Room<WorldState> {
   private chatBudget = new Map<string, { tokens: number; lastAt: number }>();
 
   onCreate(): void {
+    if (WorldRoom.active) throw new ServerError(4210, 'The world is full. Please retry shortly.');
     // "world" is a single persistent shared room, not an ephemeral match —
     // it must not tear itself (and its patch loop) down just because it is
     // briefly empty between players.
     this.autoDispose = false;
+    WorldRoom.active = this;
 
     this.onMessage('move', (client, message: unknown) => {
       const p = this.state.players.get(client.sessionId);
@@ -63,6 +66,10 @@ export class WorldRoom extends Room<WorldState> {
 
       this.broadcast('chat', { id: client.sessionId, text });
     });
+  }
+
+  onDispose(): void {
+    if (WorldRoom.active === this) WorldRoom.active = undefined;
   }
 
   onJoin(client: Client, options?: JoinOptions): void {

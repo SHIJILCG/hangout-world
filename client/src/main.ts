@@ -1,16 +1,21 @@
 import * as THREE from 'three';
-import { getStateCallbacks, type Room } from 'colyseus.js';
+import { getStateCallbacks } from 'colyseus.js';
 import { KeyboardInput } from './input/keyboard';
 import { createPlayerState, updatePlayer, PLAYER_HEIGHT, type MoveInput } from './player/controller';
-import { createAvatar } from './player/avatar';
+import { animateAvatar, createAvatar } from './player/avatar';
 import { createNameTag } from './player/nametag';
 import { OrbitCamera } from './camera/orbit';
 import { buildMap, SPAWN } from './world/map';
 import { showJoinScreen } from './ui/joinScreen';
-import { joinWorld, AVATAR_COLORS } from './net/connection';
+import { joinWorld, reconnectWorld, AVATAR_COLORS, type GameRoom } from './net/connection';
 import { RemotePlayers } from './net/remotePlayers';
 import { createChatPanel } from './ui/chatPanel';
-import { showBubble } from './player/chatBubble';
+import { hideBubble, showBubble } from './player/chatBubble';
+import { createAtmosphere } from './world/atmosphere';
+import './ui/game.css';
+import { createRoster } from './ui/roster';
+import { retryReconnect } from './net/reconnect';
+import { createConnectionOverlay } from './ui/connectionOverlay';
 
 const SEND_EVERY_N_STEPS = 4; // 60 Hz / 4 = 15 Hz
 
@@ -26,7 +31,7 @@ showJoinScreen(async (name, colorIndex) => {
   }
 });
 
-async function start(room: Room, name: string, colorIndex: number): Promise<void> {
+async function start(room: GameRoom, name: string, colorIndex: number): Promise<void> {
   // --- World ---
   // Load the world BEFORE creating any renderer/canvas/listeners: a failed
   // load (e.g. a dropped 4.4 MB GLB fetch) must throw here, before any
@@ -38,12 +43,20 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87ceeb);
-  scene.fog = new THREE.Fog(0x87ceeb, 120, 320);
+  scene.background = new THREE.Color(0xd4e8da);
+  scene.fog = new THREE.Fog(0xd4e8da, 100, 290);
   scene.add(map.group);
+  scene.add(createAtmosphere());
+  const hud = document.createElement('aside');
+  hud.id = 'world-hud';
+  hud.innerHTML = '<strong>Meadow Valley</strong><small>WASD move / Shift run / Space jump</small><small>Drag to look / Scroll to zoom / Enter to chat</small>';
+  document.body.append(hud);
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
 
@@ -56,7 +69,7 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
 
   // --- Local player ---
   const avatar = createAvatar(AVATAR_COLORS[colorIndex] ?? AVATAR_COLORS[0]);
-  const myTag = createNameTag(name);
+  let myTag = createNameTag(name);
   myTag.position.set(0, PLAYER_HEIGHT + 0.45, 0);
   avatar.add(myTag);
   scene.add(avatar);
@@ -64,59 +77,95 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
   const input = new KeyboardInput();
   const orbit = new OrbitCamera();
   let player = createPlayerState(SPAWN.x, SPAWN.y, SPAWN.z);
+  let connected = true;
+  const lifetime = new AbortController();
 
   // --- Remote players ---
-  const remotes = new RemotePlayers();
+  const remotes = new RemotePlayers((pose) => pose.y <= map.collision.supportHeightAt(pose.x, pose.z, pose.y, 0.4) + 0.08);
   scene.add(remotes.group);
-
-  const $ = getStateCallbacks(room);
-  $(room.state).players.onAdd((p: any, sessionId: string) => {
-    if (sessionId === room.sessionId) {
-      // Local player is predicted locally, but the name may have been
-      // sanitized server-side (e.g. a profane name replaced with "Guest") —
-      // make sure the local tag reflects what everyone else actually sees.
-      if (p.name !== name) {
-        avatar.remove(myTag);
-        const sanitizedTag = createNameTag(p.name);
-        sanitizedTag.position.copy(myTag.position);
-        avatar.add(sanitizedTag);
-      }
-      return;
-    }
-    remotes.add(sessionId, {
-      name: p.name, colorIndex: p.colorIndex,
-      x: p.x, y: p.y, z: p.z, heading: p.heading,
-    });
-    $(p).onChange(() => {
-      remotes.updateTarget(sessionId, { x: p.x, y: p.y, z: p.z, heading: p.heading });
-    });
-  });
-  $(room.state).players.onRemove((_p: any, sessionId: string) => {
-    remotes.remove(sessionId);
-  });
-
-  room.onLeave(() => {
-    // Reload back to the join screen on disconnect — simplest reliable recovery.
-    location.reload();
-  });
-
-  // --- Chat ---
   const chat = createChatPanel((text) => {
-    room.send('chat', { text });
+    if (connected) room.send('chat', { text });
   });
+  const roster = createRoster(room.roomId, room.sessionId, () => {
+    for (const id of room.state.players.keys()) {
+      if (!roster.isBlocked(id)) continue;
+      chat.hideSender(id);
+      const root = remotes.getRoot(id);
+      if (root) hideBubble(root);
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    lifetime.abort();
+    input.dispose();
+    renderer.setAnimationLoop(null);
+    if (connected) void room.leave();
+  }, { once: true });
 
-  room.onMessage('chat', ({ id, text }: { id: string; text: string }) => {
-    const sender = room.state.players.get(id);
-    const senderName = sender ? (sender.name as string) : '???';
-    const isSelf = id === room.sessionId;
-    chat.addMessage(senderName, text, isSelf);
-    const target = isSelf ? avatar : remotes.getRoot(id);
-    if (target) showBubble(target, text);
-  });
+  function bindRoom(channel: GameRoom, recovering = false): void {
+    const $ = getStateCallbacks(channel);
+    $(channel.state).players.onAdd((p, sessionId) => {
+      roster.add(sessionId, p.name);
+      if (sessionId === channel.sessionId) {
+        if (recovering) {
+          player = { ...createPlayerState(p.x, p.y, p.z), heading: p.heading };
+        }
+        if (p.name !== name) {
+          avatar.remove(myTag);
+          myTag.material.map?.dispose();
+          myTag.material.dispose();
+          myTag = createNameTag(p.name);
+          myTag.position.set(0, PLAYER_HEIGHT + 0.45, 0);
+          avatar.add(myTag);
+          name = p.name;
+        }
+        return;
+      }
+      remotes.add(sessionId, p);
+      $(p).onChange(() => {
+        remotes.updateTarget(sessionId, { x: p.x, y: p.y, z: p.z, heading: p.heading });
+      });
+    });
+    $(channel.state).players.onRemove((_p, sessionId) => {
+      remotes.remove(sessionId);
+      roster.remove(sessionId);
+    });
+    channel.onMessage('chat', ({ id, text }: { id: string; text: string }) => {
+      if (roster.isBlocked(id)) return;
+      const sender = channel.state.players.get(id);
+      const isSelf = id === channel.sessionId;
+      chat.addMessage(sender?.name ?? 'Unknown player', text, isSelf, id);
+      const target = isSelf ? avatar : remotes.getRoot(id);
+      if (target) showBubble(target, text);
+    });
+    channel.onLeave(() => { if (!lifetime.signal.aborted) void recover(channel.reconnectionToken); });
+  }
+
+  async function recover(token: string): Promise<void> {
+    if (!connected) return;
+    connected = false;
+    input.clear();
+    const overlay = createConnectionOverlay();
+    try {
+      const restored = await retryReconnect(() => reconnectWorld(token), lifetime.signal, 6, 500, (late) => {
+        void late.leave().catch(() => console.warn('Could not close a late reconnection'));
+      });
+      if (lifetime.signal.aborted) { void restored.leave(); return; }
+      room = restored;
+      remotes.clear();
+      roster.clear();
+      bindRoom(room, true);
+      connected = true;
+      input.clear();
+      overlay.dispose();
+    } catch (error) {
+      if (!lifetime.signal.aborted) overlay.failed(error instanceof Error ? error.message : 'The server is unavailable.');
+    }
+  }
+  bindRoom(room);
 
   // Enter opens chat when the game has focus (never while already typing).
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !chat.isOpen) {
+    if (connected && e.key === 'Enter' && !chat.isOpen) {
       e.preventDefault();
       chat.open();
       input.clear();
@@ -130,7 +179,11 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
   window.addEventListener('mousemove', (e) => {
     if (dragging) orbit.applyDrag(e.movementX, e.movementY);
   });
-  window.addEventListener('wheel', (e) => orbit.applyZoom(e.deltaY), { passive: true });
+  renderer.domElement.addEventListener('wheel', (e) => orbit.applyZoom(e.deltaY), { passive: true });
+  window.addEventListener('blur', () => { input.clear(); dragging = false; });
+  document.addEventListener('focusin', (event) => {
+    if (event.target instanceof HTMLElement && event.target.closest('button, input, details')) input.clear();
+  });
 
   // --- Fixed-timestep loop ---
   const STEP = 1 / 60;
@@ -144,7 +197,7 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
     last = now;
 
     while (accumulator >= STEP) {
-      const k = chat.isOpen
+      const k = chat.isOpen || !connected
         ? { moveX: 0, moveZ: 0, run: false, jump: false }
         : input.state;
       const f = orbit.forward();
@@ -155,11 +208,12 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
         run: k.run,
         jump: k.jump,
       };
-      player = updatePlayer(player, move, STEP, map.collision);
+      if (connected) player = updatePlayer(player, move, STEP, map.collision);
+      animateAvatar(avatar, stepCount * STEP, Math.hypot(move.dirX, move.dirZ) > 0 ? (move.run ? 8 : 4) : 0, player.onGround, STEP);
       remotes.tick(STEP);
 
       stepCount++;
-      if (stepCount % SEND_EVERY_N_STEPS === 0) {
+      if (connected && stepCount % SEND_EVERY_N_STEPS === 0) {
         room.send('move', { x: player.x, y: player.y, z: player.z, heading: player.heading });
       }
       accumulator -= STEP;

@@ -1,7 +1,9 @@
 # Fantasy Meadow Valley asset
 
 The deliverable is [`fantasy-meadow.glb`](../client/public/models/fantasy-meadow.glb).
-It is a standalone environment, not a replacement for the existing multiplayer map.
+It is a self-contained environment asset and is also the current multiplayer map.
+The game loads the GLB together with the generated heightfield/AABB collision
+manifest in `client/src/world/meadow-collision.json`.
 
 ## Contents and coordinates
 
@@ -63,7 +65,7 @@ npm run dev
 Open `/meadow-preview.html` on the Vite development server. The preview offers
 overview, bridge, ruins, meadow, and backdrop camera presets, plus a GLB download.
 Drag to orbit, scroll to zoom, and right-drag to pan. This is a development-only
-viewer; the existing production entry point and game world remain unchanged.
+viewer; the production game uses the same GLB with its player/collision systems.
 Vite copies the asset into `dist/models/fantasy-meadow.glb` during the normal build.
 
 ## Importing into a game
@@ -75,9 +77,12 @@ have `extras.visualOnly=true`. Steps include route, step number, rise, run, and
 top-height metadata; traversable structures have `extras.walkable=true`.
 Three.js exposes these extras as `Object3D.userData`.
 
-**GLB does not standardize collision or enforce movement.** The step geometry is
-traversable, but collision bodies, slope handling, river behavior, and world
-boundaries must be wired into the host game separately. In particular, this
-project's current ground-plane/AABB controller does not support the new rolling
-terrain automatically. Do not treat the backdrop as walkable or add its bounds
-to the playable collision world.
+**GLB does not standardize collision or enforce movement.** This project wires
+the generated heightfield and collision boxes into its controller: bridge and
+ruin steps, river wading, and boundaries are covered by map tests. Other host
+games must supply their own collision integration. Regenerate the GLB and
+collision manifest together whenever the layout changes.
+
+The game adds a runtime sky, clouds, and visual-only distant valley floor.
+These are not embedded in the GLB and do not change its triangle budget or the
+playable square. Do not treat them or the backdrop as walkable.

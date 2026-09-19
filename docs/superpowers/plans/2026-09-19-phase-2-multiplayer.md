@@ -1237,5 +1237,4 @@ git commit -m "feat: multiplayer join flow, pose broadcasting, and remote player
 
 ## What comes next (separate plans)
 
-- **Phase 3:** text chat (panel + bubbles) over the same room. **Phase 4:** LiveKit proximity voice. **Phase 5:** character models/animations, full-room UX, deploy.
-
+- **Phase 3:** text chat (panel + bubbles) over the same room. **Phase 4:** retired (voice removed by owner on 2026-09-20). **Phase 5:** character models/animations, full-room UX, deploy.

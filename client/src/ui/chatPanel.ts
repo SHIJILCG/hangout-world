@@ -3,7 +3,8 @@ export const CHAT_LOG_LIMIT = 50;
 export interface ChatPanel {
   readonly isOpen: boolean;
   open(): void;
-  addMessage(name: string, text: string, isSelf?: boolean): void;
+  addMessage(name: string, text: string, isSelf?: boolean, senderId?: string): void;
+  hideSender(senderId: string): void;
   dispose(): void;
 }
 
@@ -12,13 +13,13 @@ const CSS = `
   font-family: system-ui, sans-serif; font-size: 14px; pointer-events: none; }
 #chat-log { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column;
   gap: 2px; margin-bottom: 6px; }
-.chat-line { background: rgba(15, 23, 42, 0.55); color: #fff; border-radius: 6px;
-  padding: 3px 8px; width: fit-content; max-width: 100%; word-break: break-word; }
-.chat-line.self { background: rgba(37, 99, 235, 0.55); }
+.chat-line { background: rgba(32, 61, 53, 0.9); color: #fff5da; border-radius: 8px;
+  padding: 6px 10px; width: fit-content; max-width: 100%; word-break: break-word; }
+.chat-line.self { background: rgba(77, 108, 59, 0.9); }
 .chat-line b { margin-right: 4px; }
 #chat-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.4); background: rgba(15, 23, 42, 0.75);
-  color: #fff; outline: none; pointer-events: auto; }
+  border: 1px solid #91ab88; background: rgba(32, 61, 53, 0.95);
+  color: #fff5da; pointer-events: auto; }
 #chat-input.hidden { display: none; }
 `;
 
@@ -67,9 +68,10 @@ export function createChatPanel(onSend: (text: string) => void): ChatPanel {
       openState = true;
       inputEl.focus();
     },
-    addMessage(name: string, text: string, isSelf = false) {
+    addMessage(name: string, text: string, isSelf = false, senderId?: string) {
       const line = document.createElement('div');
       line.className = 'chat-line' + (isSelf ? ' self' : '');
+      if (senderId) line.dataset.sender = senderId;
       const nameEl = document.createElement('b');
       nameEl.textContent = `${name}:`;       // textContent — never innerHTML for user data
       line.appendChild(nameEl);
@@ -77,6 +79,11 @@ export function createChatPanel(onSend: (text: string) => void): ChatPanel {
       log.appendChild(line);
       while (log.children.length > CHAT_LOG_LIMIT) log.removeChild(log.firstChild!);
       log.scrollTop = log.scrollHeight;
+    },
+    hideSender(senderId: string) {
+      for (const line of Array.from(log.children)) {
+        if (line instanceof HTMLElement && line.dataset.sender === senderId) line.remove();
+      }
     },
     dispose() {
       root.remove();

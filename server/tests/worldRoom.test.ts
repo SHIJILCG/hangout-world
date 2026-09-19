@@ -1,14 +1,48 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { boot, type ColyseusTestServer } from '@colyseus/testing';
 import appConfig from '../src/app.config';
-import { MAX_STEP, SPAWN } from '../src/constants';
+import { MAX_STEP, SPAWN, MAX_CLIENTS } from '../src/constants';
 
 describe('WorldRoom', () => {
   let colyseus: ColyseusTestServer;
 
-  beforeAll(async () => { colyseus = await boot(appConfig); });
-  afterAll(async () => { await colyseus.shutdown(); });
+  beforeAll(async () => { colyseus = await boot(appConfig, Number(process.env.TEST_PORT ?? 2568)); });
+  afterAll(async () => { await colyseus?.shutdown(); });
   beforeEach(async () => { await colyseus.cleanup(); });
+
+  it('refuses a second world when the first is full and admits a player after a slot opens', async () => {
+    const room = await colyseus.createRoom('world', {});
+    const clients = [];
+    for (let i = 0; i < MAX_CLIENTS; i++) {
+      clients.push(await colyseus.connectTo(room, { name: `Guest${i}`, colorIndex: 0 }));
+    }
+    expect(room.clients.length).toBe(MAX_CLIENTS);
+    await expect(colyseus.sdk.joinOrCreate('world', { name: 'Waiting', colorIndex: 0 })).rejects.toMatchObject({ code: 4210 });
+    await clients[0].leave(true);
+    await room.waitForNextPatch();
+    const admitted = await colyseus.sdk.joinOrCreate('world', { name: 'Next', colorIndex: 0 });
+    expect(admitted.roomId).toBe(room.roomId);
+    expect(room.clients.length).toBe(MAX_CLIENTS);
+  });
+
+  it('restores the same session after a transport drop', async () => {
+    const room = await colyseus.createRoom('world', {});
+    const client = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 1 });
+    const token = client.reconnectionToken;
+    const identity = client.sessionId;
+    await client.leave(false);
+    const restored = await colyseus.sdk.reconnect(token);
+    expect(restored.sessionId).toBe(identity);
+    expect(room.state.players.has(identity)).toBe(true);
+  });
+
+  it('joins a text-only world without advertising voice support', async () => {
+    const room = await colyseus.createRoom('world', {});
+    const client = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+    await room.waitForNextPatch();
+    expect(room.state.players.has(client.sessionId)).toBe(true);
+    expect(room.state).not.toHaveProperty('voiceSupported');
+  });
 
   it('spawns a joining player at SPAWN with sanitized name and color', async () => {
     const room = await colyseus.createRoom('world', {});

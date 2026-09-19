@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-"Hangout World" — a browser 3D multiplayer hangout: visitors join via a nickname/color screen and walk, run, and jump around a low-poly park together. Spec and per-phase implementation plans live in `docs/superpowers/specs/` and `docs/superpowers/plans/`. Phases 1 (world + movement) and 2 (multiplayer) are built; phases 3–5 (text chat, LiveKit proximity voice, models/deploy) are planned in the spec but not yet implemented.
+"Hangout World" — a browser 3D multiplayer hangout: visitors join via a nickname/color screen and walk, run, and jump around an 80×80 low-poly meadow together. Movement, multiplayer, text chat/bubbles, meadow collision, animated procedural explorers, player text blocking, full-room waiting, and reconnect UX are implemented. Voice was removed at the owner's request on 2026-09-20: no microphone UI, audio service, or LiveKit dependencies remain. Production deployment and target-device performance must be verified separately. Original spec and plans live in `docs/superpowers/`; current setup and verification instructions are in `docs/deployment.md`.
 
 ## Commands
 
@@ -32,7 +32,12 @@ Multiplayer needs both servers running. The client connects to `ws://<location.h
 Game logic modules must NOT import `three` and are unit-tested headlessly under plain Node: `input/keyboard.ts` (DOM events only; its test uses a per-file `// @vitest-environment happy-dom` pragma — the project's Vitest default env is node), `world/collision.ts`, `player/controller.ts`, `camera/orbit.ts`, `net/interpolation.ts`. Rendering modules may import `three`: `world/map.ts`, `player/avatar.ts`, `player/nametag.ts`, `net/remotePlayers.ts`, `main.ts`. Keep new logic on the pure side of this line so it stays testable.
 
 ### Networking model (client authoritative-ish with server validation)
-The local player is NEVER rendered from server state — `main.ts` runs full local prediction (fixed 1/60 timestep, accumulator clamped to 0.25 s) and sends a `move` every 4th step (15 Hz). Remote players are rendered from Colyseus state callbacks and smoothed by `net/interpolation.ts` (`stepToward`: exponential smoothing, shortest-arc heading wrap, instant snap beyond 5 m). The server validates every move in `server/src/validation.ts`: bounds clamp, y clamp, and a per-message displacement cap scaled by wall-clock time since the previous message (`MAX_SPEED`), applied in `WorldRoom.onMessage('move')`.
+The local player uses local prediction (fixed 1/60 timestep, accumulator clamped to 0.25 s) and sends a `move` every 4th step (15 Hz). Only a successful reconnect restores the local pose from server state once. Remote players are rendered from Colyseus state callbacks and smoothed by `net/interpolation.ts` (`stepToward`: exponential smoothing, shortest-arc heading wrap, instant snap beyond 5 m). Movement uses a distance token bucket on the server (3 m burst, refilled at `MAX_SPEED`) plus bounds/y validation.
+
+### Text chat and player controls
+- Communication is text-only, relayed through Colyseus with server-side message length and rate limits. No external communication service or credentials are required.
+- Player preferences are stored by room ID + session ID in localStorage (max 200). Block hides text/bubbles. Existing saved blocks are preserved; obsolete mute-only preferences are discarded. With no accounts, preferences cannot follow a player who returns with a new session ID.
+- `player/animation.ts` contains pure idle/walk/run/jump pose math; `player/avatar.ts` blends those poses on locally generated explorer rigs. Runtime sky/clouds/valley floor are separate from the unchanged environment GLB and have no collision.
 
 ### Movement/physics conventions
 - Heading = `Math.atan2(dirX, dirZ)`; avatars face +z at heading 0, so `mesh.rotation.y = heading`. Task code in three places depends on this — don't flip the atan2 arguments.
@@ -45,11 +50,12 @@ The local player is NEVER rendered from server state — `main.ts` runs full loc
 - `server/vitest.config.ts` forces `pool: 'threads'`: `@colyseus/tools`' `listen()` calls `process.send('ready')`, which corrupts Vitest's default forks-pool IPC.
 - `server/tsconfig.json` needs `experimentalDecorators: true` and `useDefineForClassFields: false` for `@colyseus/schema` decorators.
 - Unconsented disconnects get a 15 s `allowReconnection` grace (the avatar freezes for others until it expires); consented leaves are removed immediately.
-- **Colyseus kicks clients on unregistered message types in production** (verified in @colyseus/core Room.js `__no_message_handler`: dev mode only warns, production calls `client.leave(WS_CLOSE_WITH_ERROR)`). Consequence: a NEW client sending a message type an OLD deployed server doesn't handle disconnects the player (who then hits the reload-to-join-screen recovery). Mixed-version windows during deploys are NOT graceful — when adding a message type, expect this until the server deploy lands, and consider deploying the server before the client for new types.
+- **Colyseus kicks clients on unregistered message types in production** (verified in @colyseus/core Room.js `__no_message_handler`). Coordinate client/server deploys when removing handlers and reload old clients; gate newly added message types on an advertised capability.
 
-### Known deferred items (ruled, not forgotten)
-- `joinOrCreate` can spin up a second world instance past 20 players instead of a "world full" message — deferred to Phase 5.
-- The move-rate limiter uses wall-clock dt, so a legit client's catch-up burst after a frame hitch can be briefly clamped (transient remote-view rubber-banding); the planned fix is a token-bucket allowance, first hardening item of Phase 3.
+### Deployment constraints and remaining verification
+- `WorldRoom` enforces one persistent room per server process. A second room creation throws code 4210; the join screen retries every five seconds and offers cancellation. Deploy exactly one server process/instance; horizontal scaling needs distributed singleton coordination.
+- The client freezes movement on game disconnect. It attempts session reconnection within the 15 s grace, rebuilding subscriptions without a second renderer. Expiry/server restart shows a return-to-join action.
+- Production hosting and the 60 fps target require manual verification. The basic nickname substring filter and absence of a transport-level message flood limiter remain hardening follow-ups, not comprehensive moderation.
 - `serverUrl()` honors a build-time `VITE_SERVER_URL` (deployed builds); without it, falls back to `ws://<hostname>:2567` for local/LAN dev. Server deploys via `render.yaml` (Render free plan; `@colyseus/tools` honors Render's `PORT`); client deploys on Cloudflare Pages (root `client/`, build `npm run build`, output `dist`, env `VITE_SERVER_URL=wss://<render-url>`).
 
 ## Process conventions in this repo
