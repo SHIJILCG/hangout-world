@@ -1,4 +1,4 @@
-import { WORLD_HALF, MAX_STEP, MAX_Y, COLOR_COUNT } from './constants';
+import { WORLD_HALF, MAX_STEP, MAX_Y, COLOR_COUNT, CHAT_MAX_LENGTH } from './constants';
 
 const BANNED_WORDS = [
   'fuck', 'shit', 'bitch', 'cunt', 'nigger', 'nigga', 'faggot', 'asshole',
@@ -12,6 +12,12 @@ export function sanitizeName(raw: unknown): string {
   const lower = name.toLowerCase();
   if (BANNED_WORDS.some((w) => lower.includes(w))) return 'Guest';
   return name;
+}
+
+export function sanitizeChat(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const text = raw.trim().slice(0, CHAT_MAX_LENGTH);
+  return text.length > 0 ? text : null;
 }
 
 export function clampColorIndex(raw: unknown): number {

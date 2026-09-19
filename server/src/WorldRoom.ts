@@ -1,7 +1,7 @@
 import { Room, type Client } from 'colyseus';
 import { WorldState, PlayerState } from './schema';
-import { sanitizeName, clampColorIndex, validateMove } from './validation';
-import { SPAWN, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP } from './constants';
+import { sanitizeName, clampColorIndex, validateMove, sanitizeChat } from './validation';
+import { SPAWN, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP, CHAT_BURST, CHAT_REFILL_MS } from './constants';
 
 interface JoinOptions { name?: unknown; colorIndex?: unknown }
 
@@ -12,6 +12,9 @@ export class WorldRoom extends Room<WorldState> {
   // Distance token bucket per player: tolerates legit catch-up bursts while
   // hard-capping sustained speed at MAX_SPEED regardless of message rate.
   private moveBudget = new Map<string, { budget: number; lastAt: number }>();
+
+  // Chat token bucket per player: CHAT_BURST instant messages, +1/sec.
+  private chatBudget = new Map<string, { tokens: number; lastAt: number }>();
 
   onCreate(): void {
     // "world" is a single persistent shared room, not an ephemeral match —
@@ -41,6 +44,25 @@ export class WorldRoom extends Room<WorldState> {
       p.z = next.z;
       p.heading = next.heading;
     });
+
+    this.onMessage('chat', (client, message: unknown) => {
+      const text = sanitizeChat((message as { text?: unknown } | null)?.text);
+      if (text === null) return;
+      if (!this.state.players.has(client.sessionId)) return;
+
+      const now = Date.now();
+      const entry = this.chatBudget.get(client.sessionId) ?? { tokens: CHAT_BURST, lastAt: now };
+      entry.tokens = Math.min(CHAT_BURST, entry.tokens + (now - entry.lastAt) / CHAT_REFILL_MS);
+      entry.lastAt = now;
+      if (entry.tokens < 1) {
+        this.chatBudget.set(client.sessionId, entry);
+        return;   // silently dropped
+      }
+      entry.tokens -= 1;
+      this.chatBudget.set(client.sessionId, entry);
+
+      this.broadcast('chat', { id: client.sessionId, text });
+    });
   }
 
   onJoin(client: Client, options?: JoinOptions): void {
@@ -52,6 +74,7 @@ export class WorldRoom extends Room<WorldState> {
     p.z = SPAWN.z;
     this.state.players.set(client.sessionId, p);
     this.moveBudget.set(client.sessionId, { budget: MOVE_BUDGET_CAP, lastAt: Date.now() });
+    this.chatBudget.set(client.sessionId, { tokens: CHAT_BURST, lastAt: Date.now() });
   }
 
   async onLeave(client: Client, consented: boolean): Promise<void> {
@@ -66,5 +89,6 @@ export class WorldRoom extends Room<WorldState> {
     }
     this.state.players.delete(client.sessionId);
     this.moveBudget.delete(client.sessionId);
+    this.chatBudget.delete(client.sessionId);
   }
 }

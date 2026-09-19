@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeName, clampColorIndex, validateMove, type Pose } from '../src/validation';
-import { WORLD_HALF, MAX_STEP, MAX_Y } from '../src/constants';
+import { sanitizeName, clampColorIndex, validateMove, sanitizeChat, type Pose } from '../src/validation';
+import { WORLD_HALF, MAX_STEP, MAX_Y, CHAT_MAX_LENGTH } from '../src/constants';
 
 describe('sanitizeName', () => {
   it('accepts a normal name, trimmed', () => {
@@ -98,5 +98,22 @@ describe('validateMove', () => {
   it('defaults the third param to MAX_STEP when omitted (two-arg call unchanged)', () => {
     const next = validateMove(at, { x: 10, y: 0, z: 8, heading: 0 });
     expect(next.x).toBeCloseTo(MAX_STEP, 5);
+  });
+});
+
+describe('sanitizeChat', () => {
+  it('passes a normal message through trimmed', () => {
+    expect(sanitizeChat('  hello there  ')).toBe('hello there');
+  });
+  it('slices to CHAT_MAX_LENGTH', () => {
+    const long = 'x'.repeat(CHAT_MAX_LENGTH + 50);
+    expect(sanitizeChat(long)).toHaveLength(CHAT_MAX_LENGTH);
+  });
+  it('rejects empty and non-string input', () => {
+    expect(sanitizeChat('')).toBeNull();
+    expect(sanitizeChat('   ')).toBeNull();
+    expect(sanitizeChat(undefined)).toBeNull();
+    expect(sanitizeChat(7)).toBeNull();
+    expect(sanitizeChat({ text: 'hi' })).toBeNull();
   });
 });

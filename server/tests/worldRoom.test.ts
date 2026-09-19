@@ -144,4 +144,50 @@ describe('WorldRoom', () => {
     expect(room.state.players.get(a.sessionId)!.x).toBeCloseTo(0.5, 4);
     expect(room.state.players.get(b.sessionId)!.x).toBe(SPAWN.x);
   });
+
+  it('relays chat to all clients with the sender id', async () => {
+    const room = await colyseus.createRoom('world', {});
+    const a = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+    const b = await colyseus.connectTo(room, { name: 'Bob', colorIndex: 1 });
+    const got: Array<{ id: string; text: string }> = [];
+    b.onMessage('chat', (m: { id: string; text: string }) => got.push(m));
+    a.send('chat', { text: '  hi Bob  ' });
+    await room.waitForMessage('chat');
+    await new Promise((r) => setTimeout(r, 50));   // let the broadcast reach b
+    expect(got).toEqual([{ id: a.sessionId, text: 'hi Bob' }]);
+  });
+
+  it('drops empty and malformed chat silently', async () => {
+    const room = await colyseus.createRoom('world', {});
+    const a = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+    const got: unknown[] = [];
+    a.onMessage('chat', (m: unknown) => got.push(m));
+    // Sent+awaited one at a time — see the comment on the move burst tests
+    // above for why (a @colyseus/testing v0.16.x waitForMessage() batching
+    // quirk where only the first of a synchronous burst of same-type
+    // messages resolves the wait).
+    a.send('chat', { text: '   ' });
+    await room.waitForMessage('chat');
+    a.send('chat', { nope: true });
+    await room.waitForMessage('chat');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(got).toEqual([]);
+  });
+
+  it('rate-limits a chat flood to the burst size', async () => {
+    const room = await colyseus.createRoom('world', {});
+    const a = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+    const got: unknown[] = [];
+    a.onMessage('chat', (m: unknown) => got.push(m));
+    // Sent+awaited one at a time — see the move burst tests above for why.
+    // The interleaving is harmless to this test's intent: 8 sequential sends
+    // still land well within the CHAT_REFILL_MS=1000ms window, so only the
+    // CHAT_BURST=3 tokens available at the start pass through.
+    for (let i = 0; i < 8; i++) {
+      a.send('chat', { text: `msg ${i}` });
+      await room.waitForMessage('chat');
+    }
+    await new Promise((r) => setTimeout(r, 50));
+    expect(got.length).toBe(3);   // CHAT_BURST
+  });
 });

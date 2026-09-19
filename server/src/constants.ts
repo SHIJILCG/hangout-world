@@ -13,3 +13,6 @@ export const COLOR_COUNT = 6;  // client's AVATAR_COLORS length
 export const RECONNECT_GRACE_SECONDS = 15;
 export const MAX_CLIENTS = 20;
 export const MOVE_BUDGET_CAP = 3;  // metres of instantly-spendable movement (covers catch-up bursts)
+export const CHAT_MAX_LENGTH = 200;  // chars per message after trim
+export const CHAT_BURST = 3;         // instant messages before throttling
+export const CHAT_REFILL_MS = 1000;  // one token back per second
