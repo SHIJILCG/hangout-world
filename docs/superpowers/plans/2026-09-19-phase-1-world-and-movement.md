@@ -561,7 +561,9 @@ describe('walking and running', () => {
   });
 
   it('faces the direction of movement', () => {
-    const s = simulate(flat, { ...idle, dirX: 0, dirZ: 1 }, 5);
+    // heading = atan2(dirX, dirZ): moving +x must yield π/2 so that
+    // avatar.rotation.y = heading turns the (+z-facing) avatar toward +x.
+    const s = simulate(flat, { ...idle, dirX: 1, dirZ: 0 }, 5);
     expect(s.heading).toBeCloseTo(Math.atan2(1, 0), 5);
   });
 
