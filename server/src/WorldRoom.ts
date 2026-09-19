@@ -1,7 +1,7 @@
 import { Room, type Client } from 'colyseus';
 import { WorldState, PlayerState } from './schema';
 import { sanitizeName, clampColorIndex, validateMove } from './validation';
-import { SPAWN, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_STEP, MAX_SPEED } from './constants';
+import { SPAWN, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP } from './constants';
 
 interface JoinOptions { name?: unknown; colorIndex?: unknown }
 
@@ -9,10 +9,9 @@ export class WorldRoom extends Room<WorldState> {
   maxClients = MAX_CLIENTS;
   state = new WorldState();
 
-  // Per-player timestamp (ms, Date.now()) of the last processed "move"
-  // message — used to scale the allowed step by real elapsed time, so a
-  // flood of messages can't be used to move faster than MAX_SPEED.
-  private lastMoveAt = new Map<string, number>();
+  // Distance token bucket per player: tolerates legit catch-up bursts while
+  // hard-capping sustained speed at MAX_SPEED regardless of message rate.
+  private moveBudget = new Map<string, { budget: number; lastAt: number }>();
 
   onCreate(): void {
     // "world" is a single persistent shared room, not an ephemeral match —
@@ -25,18 +24,18 @@ export class WorldRoom extends Room<WorldState> {
       if (!p) return;
 
       const now = Date.now();
-      const last = this.lastMoveAt.get(client.sessionId);
-      // First message after join: assume a normal 15 Hz send interval
-      // rather than an unbounded/huge dt.
-      const dt = last === undefined ? 1 / 15 : (now - last) / 1000;
-      this.lastMoveAt.set(client.sessionId, now);
+      const entry = this.moveBudget.get(client.sessionId) ?? { budget: MOVE_BUDGET_CAP, lastAt: now };
+      entry.budget = Math.min(
+        MOVE_BUDGET_CAP,
+        entry.budget + (MAX_SPEED * (now - entry.lastAt)) / 1000
+      );
+      entry.lastAt = now;
 
-      // Floor tolerates timer jitter at 15 Hz; MAX_SPEED * dt caps sustained
-      // speed under a flood of messages; MAX_STEP is the absolute ceiling
-      // for a single message after a long gap.
-      const maxStep = Math.min(MAX_STEP, Math.max(MAX_SPEED / 30, MAX_SPEED * dt));
+      const current = { x: p.x, y: p.y, z: p.z, heading: p.heading };
+      const next = validateMove(current, message, entry.budget);
+      entry.budget -= Math.hypot(next.x - current.x, next.z - current.z);
+      this.moveBudget.set(client.sessionId, entry);
 
-      const next = validateMove({ x: p.x, y: p.y, z: p.z, heading: p.heading }, message, maxStep);
       p.x = next.x;
       p.y = next.y;
       p.z = next.z;
@@ -52,7 +51,7 @@ export class WorldRoom extends Room<WorldState> {
     p.y = SPAWN.y;
     p.z = SPAWN.z;
     this.state.players.set(client.sessionId, p);
-    this.lastMoveAt.delete(client.sessionId);
+    this.moveBudget.set(client.sessionId, { budget: MOVE_BUDGET_CAP, lastAt: Date.now() });
   }
 
   async onLeave(client: Client, consented: boolean): Promise<void> {
@@ -66,6 +65,6 @@ export class WorldRoom extends Room<WorldState> {
       }
     }
     this.state.players.delete(client.sessionId);
-    this.lastMoveAt.delete(client.sessionId);
+    this.moveBudget.delete(client.sessionId);
   }
 }

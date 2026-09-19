@@ -12,3 +12,4 @@ export const MAX_Y = 10;       // max plausible height (jump apex ≈ 1.2 + stag
 export const COLOR_COUNT = 6;  // client's AVATAR_COLORS length
 export const RECONNECT_GRACE_SECONDS = 15;
 export const MAX_CLIENTS = 20;
+export const MOVE_BUDGET_CAP = 3;  // metres of instantly-spendable movement (covers catch-up bursts)
