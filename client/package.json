@@ -8,6 +8,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "colyseus.js": "^0.16.0",
     "three": "^0.169.0"
   },
   "devDependencies": {
