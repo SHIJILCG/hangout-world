@@ -28,7 +28,7 @@ describe('walking and running', () => {
   });
 
   it('faces the direction of movement', () => {
-    const s = simulate(flat, { ...idle, dirX: 0, dirZ: 1 }, 5);
+    const s = simulate(flat, { ...idle, dirX: 1, dirZ: 0 }, 5);
     expect(s.heading).toBeCloseTo(Math.atan2(1, 0), 5);
   });
 

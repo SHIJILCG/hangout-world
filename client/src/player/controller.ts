@@ -35,7 +35,7 @@ export function updatePlayer(s: PlayerState, input: MoveInput, dt: number, world
     const nz = input.dirZ / len;
     next.x += nx * speed * dt;
     next.z += nz * speed * dt;
-    next.heading = Math.atan2(nz, nx);
+    next.heading = Math.atan2(nx, nz);
   }
   const resolved = world.resolveHorizontal(next.x, next.z, s.y, PLAYER_RADIUS, PLAYER_HEIGHT);
   next.x = resolved.x;
