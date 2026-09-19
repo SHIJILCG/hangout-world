@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:meadow": "node scripts/meadow/generate.mjs",
+    "validate:meadow": "node scripts/meadow/validate.mjs",
+    "test:meadow": "node --test scripts/meadow/meadow.check.mjs"
   },
   "dependencies": {
     "colyseus.js": "^0.16.0",

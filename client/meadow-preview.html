@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fantasy Meadow · Asset Preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #b9d9dc; color: #f8f5e9; font: 14px/1.5 system-ui, sans-serif; }
+      canvas { display: block; width: 100vw; height: 100vh; }
+      aside { position: absolute; top: 24px; left: 24px; width: min(350px, calc(100vw - 48px)); padding: 20px 24px; background: #203d35ed; border-radius: 16px; }
+      h1 { font-size: 23px; margin: 4px 0 8px; font-weight: 600; }
+      p { margin: 8px 0; color: #c9dac5; }
+      small { text-transform: uppercase; letter-spacing: 2px; color: #d6d89a; }
+      nav { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+      button, a { border: 1px solid #698474; border-radius: 7px; background: #385748; color: #fff5da; padding: 7px 10px; font: inherit; cursor: pointer; text-decoration: none; }
+      button:hover, a:hover { background: #526d45; }
+      #status { font-size: 12px; }
+      footer { position: absolute; bottom: 20px; left: 24px; background: #203d35ed; padding: 8px 14px; border-radius: 8px; }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <small>Hangout World / Environment asset</small>
+      <h1>Fantasy Meadow Valley</h1>
+      <p>An 80 × 80 m meadow of faceted grasslands, old stone, and a quiet river. An empty clearing for the world you build next.</p>
+      <nav>
+        <button id="overview">Overview</button><button id="bridge">Bridge</button>
+        <button id="ruin">Ruins</button><button id="center">Meadow</button>
+        <button id="backdrop">Backdrop</button>
+        <a href="/models/fantasy-meadow.glb" download>Download GLB</a>
+      </nav>
+      <p id="status" role="status">Loading asset…</p>
+    </aside>
+    <footer>Drag to orbit · Scroll to zoom · Right-drag to pan</footer>
+    <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      document.body.append(renderer.domElement);
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color('#c1dfe3');
+      scene.fog = new THREE.Fog('#c1dfe3', 180, 400);
+      const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 500);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.maxPolarAngle = Math.PI * 0.49;
+      controls.minDistance = 3;
+      controls.maxDistance = 230;
+      scene.add(new THREE.HemisphereLight('#e7f5ff', '#789158', 1.6));
+      const sun = new THREE.DirectionalLight('#fff0d5', 2);
+      sun.position.set(-32, 60, 25);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, far: 170 });
+      sun.shadow.normalBias = 0.06;
+      scene.add(sun);
+      const views = {
+        overview: [[85, 83, 96], [0, 3, 0]],
+        bridge: [[46, 13, 47], [30, 0.5, 30]],
+        ruin: [[-7, 10, 1], [-18, 1.4, -12]],
+        center: [[0, 2.3, 6], [-9, 4, -28]],
+        backdrop: [[40, 60, 77], [-30, 12, -100]],
+      };
+      for (const [id, [position, target]] of Object.entries(views)) {
+        document.getElementById(id).onclick = () => {
+          camera.position.set(...position);
+          controls.target.set(...target);
+          controls.update();
+        };
+      }
+      document.getElementById('overview').click();
+      const status = document.getElementById('status');
+      try {
+        const gltf = await new GLTFLoader().loadAsync('/models/fantasy-meadow.glb');
+        let triangles = 0, meshes = 0;
+        gltf.scene.traverse((object) => {
+          if (!object.isMesh) return;
+          meshes++;
+          triangles += object.geometry.attributes.position.count / 3;
+          object.castShadow = object.userData.role !== 'backdrop';
+          object.receiveShadow = true;
+        });
+        scene.add(gltf.scene);
+        const size = gltf.scene.userData.playableHalf * 2;
+        status.textContent = `${size} × ${size} m · ${triangles.toLocaleString()} triangles · ${meshes} meshes · 1 material · no textures`;
+        document.body.dataset.loaded = 'true';
+      } catch (error) {
+        status.textContent = `Asset failed to load: ${error.message}`;
+        console.error(error);
+        document.body.dataset.loaded = 'error';
+      }
+      addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+      renderer.setAnimationLoop(() => {
+        controls.update();
+        renderer.render(scene, camera);
+      });
+    </script>
+  </body>
+</html>
