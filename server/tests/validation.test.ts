@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeName, clampColorIndex, validateMove, sanitizeChat, type Pose } from '../src/validation';
-import { WORLD_HALF, MAX_STEP, MAX_Y, CHAT_MAX_LENGTH } from '../src/constants';
+import { WORLD_HALF, MAX_STEP, MAX_Y, CHAT_MAX_LENGTH, MIN_Y } from '../src/constants';
 
 describe('sanitizeName', () => {
   it('accepts a normal name, trimmed', () => {
@@ -57,8 +57,9 @@ describe('validateMove', () => {
                               { x: WORLD_HALF + 50, y: 0, z: 0, heading: 0 });
     expect(next.x).toBe(WORLD_HALF);
   });
-  it('clamps y to [0, MAX_Y] (displacement small enough not to trip the step cap)', () => {
-    expect(validateMove(at, { x: 0, y: -5, z: 8, heading: 0 }).y).toBe(0);
+  it('clamps y to [MIN_Y, MAX_Y] (displacement small enough not to trip the step cap)', () => {
+    expect(validateMove(at, { x: 0, y: -5, z: 8, heading: 0 }).y).toBe(MIN_Y);
+    expect(validateMove(at, { x: 0, y: -0.8, z: 8, heading: 0 }).y).toBe(-0.8);  // wading depth passes through
     const nearTop: Pose = { x: 0, y: MAX_Y - 1, z: 8, heading: 0 };
     expect(validateMove(nearTop, { x: 0, y: 99, z: 8, heading: 0 }).y).toBe(MAX_Y);
   });

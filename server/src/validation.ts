@@ -1,4 +1,4 @@
-import { WORLD_HALF, MAX_STEP, MAX_Y, COLOR_COUNT, CHAT_MAX_LENGTH } from './constants';
+import { WORLD_HALF, MIN_Y, MAX_STEP, MAX_Y, COLOR_COUNT, CHAT_MAX_LENGTH } from './constants';
 
 const BANNED_WORDS = [
   'fuck', 'shit', 'bitch', 'cunt', 'nigger', 'nigga', 'faggot', 'asshole',
@@ -40,7 +40,7 @@ export function validateMove(current: Pose, target: unknown, maxStep: number = M
   }
   let x = clamp(t.x as number, -WORLD_HALF, WORLD_HALF);
   let z = clamp(t.z as number, -WORLD_HALF, WORLD_HALF);
-  let y = clamp(t.y as number, 0, MAX_Y);
+  let y = clamp(t.y as number, MIN_Y, MAX_Y);
   const heading = t.heading as number;
 
   // Cap horizontal displacement at maxStep toward the target.
