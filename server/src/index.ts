@@ -1,2 +1,5 @@
-// Placeholder entrypoint — replaced in Task 3 with the Colyseus app config.
-console.log('hangout-world-server: scaffold OK');
+import { listen } from '@colyseus/tools';
+import app from './app.config';
+
+// Listens on process.env.PORT || 2567
+listen(app);
