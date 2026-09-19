@@ -8,6 +8,7 @@ export interface PlayerState {
 }
 
 export interface MoveInput {
+  // world-space move direction; normalized internally, so any length is accepted
   dirX: number; dirZ: number;
   run: boolean;
   jump: boolean;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildMap, WORLD_HALF, SPAWN } from '../src/world/map';
-import { PLAYER_RADIUS } from '../src/player/controller';
+import { PLAYER_RADIUS, createPlayerState, updatePlayer, type MoveInput } from '../src/player/controller';
 
 describe('buildMap', () => {
   const map = buildMap();
@@ -37,5 +37,21 @@ describe('buildMap', () => {
       }
     }
     expect(raised).toBe(true);
+  });
+
+  it('a walking player actually climbs the stairs onto the stage', () => {
+    // Real regression: walk straight from spawn toward -z (through the
+    // stair line at x=0, width 4) and confirm the player ends up standing
+    // on top of the stage (y=1.5, onGround) rather than stuck at its base.
+    // This fails if the stairs are removed, since the stage body alone
+    // (STEP_HEIGHT=0.35 < stage height 1.5) blocks a flat-footed approach.
+    let state = createPlayerState(SPAWN.x, SPAWN.y, SPAWN.z);
+    const input: MoveInput = { dirX: 0, dirZ: -1, run: false, jump: false };
+    for (let i = 0; i < 350; i++) {
+      state = updatePlayer(state, input, 1 / 60, map.collision);
+    }
+    expect(state.y).toBeCloseTo(1.5, 5);
+    expect(state.onGround).toBe(true);
+    expect(state.z).toBeLessThan(-10.5);
   });
 });
