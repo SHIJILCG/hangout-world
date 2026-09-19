@@ -20,11 +20,19 @@ showJoinScreen(async (name, colorIndex) => {
     await start(room, name, colorIndex);
   } catch (err) {
     room.leave();
-    throw err;
+    throw err instanceof Error && err.message
+      ? err
+      : new Error('world failed to load — please try again');
   }
 });
 
 async function start(room: Room, name: string, colorIndex: number): Promise<void> {
+  // --- World ---
+  // Load the world BEFORE creating any renderer/canvas/listeners: a failed
+  // load (e.g. a dropped 4.4 MB GLB fetch) must throw here, before any
+  // WebGL context exists, so a retry never leaks a context or DOM listener.
+  const map = await buildMap();
+
   // --- Renderer / scene ---
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -35,6 +43,7 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
   scene.fog = new THREE.Fog(0x87ceeb, 120, 320);
+  scene.add(map.group);
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
 
@@ -45,10 +54,7 @@ async function start(room: Room, name: string, colorIndex: number): Promise<void
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // --- World + local player ---
-  const map = await buildMap();
-  scene.add(map.group);
-
+  // --- Local player ---
   const avatar = createAvatar(AVATAR_COLORS[colorIndex] ?? AVATAR_COLORS[0]);
   const myTag = createNameTag(name);
   myTag.position.set(0, PLAYER_HEIGHT + 0.45, 0);
