@@ -55,4 +55,23 @@ describe('showJoinScreen', () => {
     expect(document.querySelector('#join-screen')).toBeTruthy();
     expect(el<HTMLButtonElement>('#join-btn').disabled).toBe(false); // can retry
   });
+
+  it('prevents double-submit via re-entrancy guard on Enter key during pending join', async () => {
+    let resolve: () => void;
+    const onJoin = vi.fn(() => new Promise<void>((r) => { resolve = r; }));
+    showJoinScreen(onJoin);
+    el<HTMLInputElement>('#join-name').value = 'Alice';
+    el<HTMLButtonElement>('#join-btn').click();
+    // Wait for onJoin to be called once
+    await vi.waitFor(() => expect(onJoin).toHaveBeenCalledTimes(1));
+    // Dispatch two Enter keydown events while the promise is pending
+    const nameInput = el<HTMLInputElement>('#join-name');
+    nameInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    nameInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    // onJoin should still have been called exactly once (not twice)
+    expect(onJoin).toHaveBeenCalledTimes(1);
+    // Resolve the promise and verify overlay is removed
+    resolve!();
+    await vi.waitFor(() => expect(document.querySelector('#join-screen')).toBeNull());
+  });
 });

@@ -59,6 +59,7 @@ export function showJoinScreen(
   const error = overlay.querySelector<HTMLParagraphElement>('#join-error')!;
 
   const submit = async () => {
+    if (button.disabled) return; // re-entrancy guard: Enter key must not bypass a pending join
     const name = nameInput.value.trim();
     if (name.length < 2) {
       error.textContent = 'Please enter a nickname (at least 2 characters).';
