@@ -5,6 +5,7 @@ import { PLAYER_HEIGHT } from '../player/controller';
 import { AVATAR_COLORS } from './connection';
 import { stepToward, type Pose } from './interpolation';
 import { hideBubble } from '../player/chatBubble';
+import { addVoiceIndicator, setSpeaking } from '../player/voiceIndicator';
 
 export interface RemoteInfo {
   name: string;
@@ -35,6 +36,7 @@ export class RemotePlayers {
     const tag = createNameTag(info.name);
     tag.position.set(0, PLAYER_HEIGHT + 0.45, 0);
     root.add(tag);
+    addVoiceIndicator(root);
 
     const pose: Pose = { x: info.x, y: info.y, z: info.z, heading: info.heading };
     root.position.set(pose.x, pose.y, pose.z);
@@ -60,6 +62,11 @@ export class RemotePlayers {
 
   getRoot(sessionId: string): THREE.Group | undefined {
     return this.entries.get(sessionId)?.root;
+  }
+
+  setSpeaking(sessionId: string, speaking: boolean): void {
+    const entry = this.entries.get(sessionId);
+    if (entry) setSpeaking(entry.root, speaking);
   }
 
   tick(dt: number): void {

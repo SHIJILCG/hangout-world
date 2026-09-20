@@ -1,6 +1,6 @@
 import { PlayerPreferences } from './playerPreferences';
 
-export function createRoster(roomId: string, selfId: string, onChange: () => void) {
+export function createRoster(roomId: string, selfId: string, onChange: () => void, onMuteChange: (id: string, muted: boolean) => void = () => {}) {
   const root = document.createElement('details');
   root.id = 'roster';
   root.innerHTML = '<summary>Players nearby</summary><p role="status"></p><div id="roster-list"></div>';
@@ -37,6 +37,17 @@ export function createRoster(roomId: string, selfId: string, onChange: () => voi
           onChange();
         });
         row.append(button);
+        const mute = document.createElement('button');
+        mute.type = 'button';
+        mute.textContent = value.muted ? 'Unmute voice' : 'Mute voice';
+        mute.setAttribute('aria-pressed', String(value.muted));
+        mute.addEventListener('click', () => {
+          const muted = !value.muted;
+          preferences.set(key(id), { muted });
+          onMuteChange(id, muted);
+          render();
+        });
+        row.append(mute);
       }
       list.append(row);
     }
@@ -50,6 +61,7 @@ export function createRoster(roomId: string, selfId: string, onChange: () => voi
     remove(id: string) { players.delete(id); render(); },
     clear() { players.clear(); render(); },
     isBlocked(id: string) { return preferences.get(key(id)).blocked; },
+    isMuted(id: string) { return preferences.get(key(id)).muted; },
     dispose() { root.remove(); },
   };
 }

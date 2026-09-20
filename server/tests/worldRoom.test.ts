@@ -218,23 +218,80 @@ describe('WorldRoom', () => {
     expect(room.state.players.get(b.sessionId)!.x).toBe(SPAWN.x);
   });
 
-  it('relays chat to all clients with the sender id', async () => {
+  it('relays proximity chat only to players inside the server-owned radius', async () => {
     const room = await colyseus.createRoom('world', {});
     const a = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
     const b = await colyseus.connectTo(room, { name: 'Bob', colorIndex: 1 });
+    a.send('proximity-capable', {});
+    await room.waitForMessage('proximity-capable');
+    b.send('proximity-capable', {});
+    await room.waitForMessage('proximity-capable');
     const got: Array<{ id: string; text: string }> = [];
-    b.onMessage('chat', (m: { id: string; text: string }) => got.push(m));
-    a.send('chat', { text: '  hi Bob  ' });
-    await room.waitForMessage('chat');
+    b.onMessage('proximity-chat', (m: { id: string; text: string }) => got.push(m));
+    a.onMessage('proximity-chat', () => {});
+    a.send('proximity-chat', { text: '  hi Bob  ' });
+    await room.waitForMessage('proximity-chat');
     await new Promise((r) => setTimeout(r, 50));   // let the broadcast reach b
     expect(got).toEqual([{ id: a.sessionId, text: 'hi Bob' }]);
+  });
+
+  it('does not relay proximity chat to players outside the chat radius', async () => {
+    const room = await colyseus.createRoom('world', {});
+    const a = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+    const b = await colyseus.connectTo(room, { name: 'Bob', colorIndex: 1 });
+    a.send('proximity-capable', {});
+    await room.waitForMessage('proximity-capable');
+    b.send('proximity-capable', {});
+    await room.waitForMessage('proximity-capable');
+    room.state.players.get(b.sessionId)!.x = 30;
+    const got: unknown[] = [];
+    b.onMessage('proximity-chat', (m: unknown) => got.push(m));
+    a.onMessage('proximity-chat', () => {});
+    a.send('proximity-chat', { text: 'too far' });
+    await room.waitForMessage('proximity-chat');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(got).toEqual([]);
+  });
+
+  it('authorizes voice signaling only for voice-ready nearby pairs', async () => {
+    const room = await colyseus.createRoom('world', {});
+    const a = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+    const b = await colyseus.connectTo(room, { name: 'Bob', colorIndex: 1 });
+    const nearby: Array<{ id: string; nearby: boolean }> = [];
+    const signals: Array<{ from: string; signal: unknown }> = [];
+    b.onMessage('voice-nearby', (m: { id: string; nearby: boolean }) => nearby.push(m));
+    a.onMessage('voice-nearby', () => {});
+    b.onMessage('voice-signal', (m: { from: string; signal: unknown }) => signals.push(m));
+    a.send('voice-ready', { enabled: true });
+    await room.waitForMessage('voice-ready');
+    b.send('voice-ready', { enabled: true });
+    await room.waitForMessage('voice-ready');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(nearby).toContainEqual({ id: a.sessionId, nearby: true });
+    a.send('voice-signal', { to: b.sessionId, signal: { kind: 'offer', description: { type: 'offer', sdp: 'test' } } });
+    await room.waitForMessage('voice-signal');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(signals).toEqual([{ from: a.sessionId, signal: { kind: 'offer', description: { type: 'offer', sdp: 'test' } } }]);
+
+    // A client cannot keep relaying after the authoritative pose leaves range.
+    room.state.players.get(b.sessionId)!.x = 30;
+    b.send('move', { x: 30, y: 0, z: SPAWN.z, heading: 0 });
+    await room.waitForMessage('move');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(nearby).toContainEqual({ id: a.sessionId, nearby: false });
+    a.send('voice-signal', { to: b.sessionId, signal: { kind: 'offer', description: { type: 'offer', sdp: 'blocked' } } });
+    await room.waitForMessage('voice-signal');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(signals).toHaveLength(1);
   });
 
   it('drops empty and malformed chat silently', async () => {
     const room = await colyseus.createRoom('world', {});
     const a = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+    a.send('proximity-capable', {});
+    await room.waitForMessage('proximity-capable');
     const got: unknown[] = [];
-    a.onMessage('chat', (m: unknown) => got.push(m));
+    a.onMessage('proximity-chat', (m: unknown) => got.push(m));
     // Sent+awaited one at a time — see the comment on the move burst tests
     // above for why (a @colyseus/testing v0.16.x waitForMessage() batching
     // quirk where only the first of a synchronous burst of same-type
@@ -250,8 +307,10 @@ describe('WorldRoom', () => {
   it('rate-limits a chat flood to the burst size', async () => {
     const room = await colyseus.createRoom('world', {});
     const a = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 0 });
+    a.send('proximity-capable', {});
+    await room.waitForMessage('proximity-capable');
     const got: unknown[] = [];
-    a.onMessage('chat', (m: unknown) => got.push(m));
+    a.onMessage('proximity-chat', (m: unknown) => got.push(m));
     // Sent+awaited one at a time — see the move burst tests above for why.
     // The interleaving is harmless to this test's intent: 8 sequential sends
     // still land well within the CHAT_REFILL_MS=1000ms window, so only the

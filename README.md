@@ -15,7 +15,7 @@ Built for desktop browsers with **Three.js, TypeScript, Vite, and Colyseus**.
   Snowy mountains, a castle, and a lake form the distant backdrop.
 - **Rounded low-poly explorers** in six colors, with idle, walk, run, and jump
   animations.
-- **World-wide text chat** with readable, high-contrast overhead bubbles.
+- **Proximity text chat and WebRTC voice:** messages and voice reach only nearby players; voice is opt-in, has mute controls, and uses distance-based volume.
   Bubbles wrap long messages and stay a consistent screen size as the camera
   moves; the chat panel shows the full message.
 - **Player blocking** that hides a player's messages and bubbles, including
@@ -23,9 +23,8 @@ Built for desktop browsers with **Three.js, TypeScript, Vite, and Colyseus**.
 - **A reproducible environment asset**: one vertex-colored GLB under 60,000
   triangles, generated alongside the game's collision manifest.
 
-Communication is **text-only**. No microphone access, LiveKit account, or
-third-party voice-service credentials are needed. Hosting still depends on
-your chosen provider's limits and pricing.
+Voice uses browser WebRTC with STUN by default. Production deployments should
+configure a TURN relay on the game server for restrictive networks.
 
 ## Controls
 
@@ -37,6 +36,7 @@ your chosen provider's limits and pricing.
 | Rotate the camera | Click and drag in the world |
 | Zoom | Mouse wheel |
 | Open chat / send a message | `Enter` |
+| Enable/disable voice | Voice panel |
 | Cancel typing | `Escape` |
 | Block / unblock a player | Open the **Players** roster |
 
@@ -84,6 +84,10 @@ external service account is required for local play.
 | --- | --- | --- |
 | `PORT` | Server | Override the game-server port; defaults to `2567`. |
 | `VITE_SERVER_URL` | Client | Override the multiplayer WebSocket URL. By default, the client connects to its current hostname on port `2567`. |
+| `WEBRTC_STUN_URLS` | Server | Optional comma-separated STUN URLs. |
+| `WEBRTC_TURN_URLS` | Server | Comma-separated TURN/TURNS URLs for production fallback. |
+| `WEBRTC_TURN_USERNAME` / `WEBRTC_TURN_CREDENTIAL` | Server | TURN credentials; required when TURN URLs are configured. |
+| `WEBRTC_TURN_SHARED_SECRET` | Server | Preferred coturn REST shared secret; mints one-hour per-session TURN credentials. |
 
 See the [client environment template](client/.env.example) and
 [server environment template](server/.env.example). Keep real environment

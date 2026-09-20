@@ -3,15 +3,16 @@
 **Date:** 2026-09-19
 **Status:** Approved by owner (brainstorming session)
 
-**Scope update (2026-09-20):** Owner removed voice chat to avoid voice-service
-costs and quotas. Communication is text-only; Phase 4 is retired.
+**Scope update (2026-09-20):** Voice is restored as opt-in browser WebRTC with
+server-configured STUN/TURN. It uses anonymous Colyseus session identities only;
+no accounts, login, or persistent identity are introduced.
 
 ## Summary
 
 A website where any visitor instantly joins a shared 3D world as an avatar:
 they pick a nickname and a preset character, then walk, run, and jump around
 a hand-crafted low-poly meadow with up to 20 people at once, talking via
-world-wide text chat. No accounts. Desktop
+proximity text chat and opt-in proximity voice. No accounts. Desktop
 browsers only in v1. Hosting cost target: ~$0–5/month.
 
 ## Goals
@@ -26,7 +27,7 @@ browsers only in v1. Hosting cost target: ~$0–5/month.
 - User accounts, persistence, friends lists.
 - Multiple maps or portals.
 - Admin/moderation dashboard (only per-user text blocking).
-- Voice chat, microphone capture, and external audio services.
+- Accounts, login, or persistent identity.
 - Custom or Ready Player Me avatars.
 
 ## Architecture
@@ -70,8 +71,11 @@ update to Colyseus → broadcast → remote clients interpolate.
 
 ## Text chat
 
-- **Text chat:** world-wide chat panel (toggleable) relayed through
-  Colyseus; each message also shows briefly as a bubble above the sender.
+- **Text chat:** proximity chat panel relayed by Colyseus after server-side
+  distance validation; each message also shows briefly as a bubble above the sender.
+- **Voice:** opt-in WebRTC audio with Colyseus signaling, server-authorized
+  proximity relationships, configurable STUN/TURN, spatial attenuation, and
+  local mute controls.
 - **Safety:** per-player block (hides their messages and bubbles,
   stored in localStorage); profanity filter on nicknames; message length
   and rate limits server-side.
@@ -103,7 +107,8 @@ update to Colyseus → broadcast → remote clients interpolate.
 2. **Multiplayer:** Colyseus room, join screen, see others move with
    interpolation, name tags.
 3. **Text chat:** panel + chat bubbles, rate limiting, nickname filter.
-4. **Retired:** voice chat removed by owner on 2026-09-20.
+4. **Proximity communication:** server proximity engine, proximity chat, and
+   opt-in WebRTC voice using STUN/TURN fallback.
 5. **Polish & deploy:** animation blending, text blocking,
    full-room handling, reconnect overlay, production deploys (Pages +
    Render).

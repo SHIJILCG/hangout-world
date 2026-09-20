@@ -17,3 +17,9 @@ export const MOVE_BUDGET_CAP = 3;  // metres of instantly-spendable movement (co
 export const CHAT_MAX_LENGTH = 200;  // chars per message after trim
 export const CHAT_BURST = 3;         // instant messages before throttling
 export const CHAT_REFILL_MS = 1000;  // one token back per second
+
+// Social distances use horizontal world metres (the meadow is 80 x 80 m).
+export const PROXIMITY = {
+  chatRadius: 18,
+  voiceRadius: 22,
+} as const;

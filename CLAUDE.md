@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-"Hangout World" — a browser 3D multiplayer hangout: visitors join via a nickname/color screen and walk, run, and jump around an 80×80 low-poly meadow together. Movement, multiplayer, text chat/bubbles, meadow collision, animated procedural explorers, player text blocking, full-room waiting, and reconnect UX are implemented. Voice was removed at the owner's request on 2026-09-20: no microphone UI, audio service, or LiveKit dependencies remain. Production deployment and target-device performance must be verified separately. Original spec and plans live in `docs/superpowers/`; current setup and verification instructions are in `docs/deployment.md`.
+"Hangout World" — a browser 3D multiplayer hangout: visitors join via a nickname/color screen and walk, run, and jump around an 80×80 low-poly meadow together. Movement, multiplayer, proximity chat/bubbles, opt-in WebRTC voice, meadow collision, animated procedural explorers, player controls, full-room waiting, and reconnect UX are implemented. Voice uses only the active Colyseus session identity; it adds no accounts or persistent identity. Production deployment and target-device performance must be verified separately. Original spec and plans live in `docs/superpowers/`; current setup and verification instructions are in `docs/deployment.md`.
 
 ## Commands
 
@@ -34,9 +34,9 @@ Game logic modules must NOT import `three` and are unit-tested headlessly under 
 ### Networking model (client authoritative-ish with server validation)
 The local player uses local prediction (fixed 1/60 timestep, accumulator clamped to 0.25 s) and sends a `move` every 4th step (15 Hz). Only a successful reconnect restores the local pose from server state once. Remote players are rendered from Colyseus state callbacks and smoothed by `net/interpolation.ts` (`stepToward`: exponential smoothing, shortest-arc heading wrap, instant snap beyond 5 m). Movement uses a distance token bucket on the server (3 m burst, refilled at `MAX_SPEED`) plus bounds/y validation.
 
-### Text chat and player controls
-- Communication is text-only, relayed through Colyseus with server-side message length and rate limits. No external communication service or credentials are required.
-- Player preferences are stored by room ID + session ID in localStorage (max 200). Block hides text/bubbles. Existing saved blocks are preserved; obsolete mute-only preferences are discarded. With no accounts, preferences cannot follow a player who returns with a new session ID.
+### Text chat, voice, and player controls
+- Proximity chat and WebRTC signaling use Colyseus. The server owns all recipient/proximity decisions; audio remains peer-to-peer. `PROXIMITY` is server-centralized (horizontal metres). STUN defaults locally; server-only `WEBRTC_TURN_*` settings configure production TURN fallback.
+- Player preferences are stored by room ID + session ID in localStorage (max 200). Block hides text/bubbles and mute affects only incoming voice. With no accounts, preferences cannot follow a player who returns with a new session ID.
 - `player/animation.ts` contains pure idle/walk/run/jump pose math; `player/avatar.ts` blends those poses on locally generated explorer rigs. Runtime sky/clouds/valley floor are separate from the unchanged environment GLB and have no collision.
 
 ### Movement/physics conventions

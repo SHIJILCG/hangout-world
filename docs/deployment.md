@@ -7,7 +7,7 @@
   poses, a styled join screen/HUD, sky/clouds, and distant scenery.
   Explorers use rounded, faceted heads, tapered tunics, capsule limbs, and
   rounded hands/boots while keeping the same standing collision dimensions.
-- World-wide text chat with chat bubbles, message length/rate limits, and a
+- Proximity text chat with chat bubbles, message length/rate limits, and a
   player roster with block/unblock. Blocking also removes existing messages
   and bubbles from that player.
   Overhead bubbles wrap up to 80 characters, use high-contrast text at a
@@ -17,9 +17,10 @@
   restored player session, and return-to-join when recovery expires.
 - One 20-player world per server process, with cancellable automatic full-room retry.
 
-Voice chat was removed at the owner's request on 2026-09-20. There are no
-microphone controls, audio connections, voice tokens, or LiveKit dependencies.
-No third-party voice subscription, account, or credentials are needed.
+Voice is opt-in WebRTC audio. The server supplies STUN first and configured
+TURN relays as fallback; it never relays microphone audio. Configure TURN for
+production networks that block direct peer connections. No login or persistent
+identity is introduced: Colyseus session IDs authorize the current room only.
 
 Previously configured values in a private `server/.env` are no longer used by
 the game. The file remains ignored and was not deleted. The owner can remove
@@ -45,19 +46,27 @@ npm run dev
 
 Open `http://localhost:5173`, pick a nickname/color, and enter the world.
 Press **Enter** to open text chat, **Enter** to send, or **Escape** to cancel.
-Use the player roster to block/unblock messages.
+Use the Voice panel to explicitly enable microphone access. Use the player
+roster to block messages or mute an individual's incoming voice.
 
 The game server defaults to port 2567 and honors `PORT`.
 The client defaults to the same hostname on port 2567, or uses
 `VITE_SERVER_URL` from [`client/.env.example`](../client/.env.example).
 Use `npm run dev -- --host` to expose the client for LAN testing.
 
+For production, set `WEBRTC_TURN_URLS` plus either `WEBRTC_TURN_USERNAME` and
+`WEBRTC_TURN_CREDENTIAL`, or preferably `WEBRTC_TURN_SHARED_SECRET` for
+coturn REST credentials. `WEBRTC_STUN_URLS` is optional;
+without it the server supplies the public STUN default. Do not put TURN values
+in `VITE_*` client variables. Clients necessarily receive ICE credentials for
+their active session, so use short-lived TURN credentials when your provider
+supports them.
+
 ## Player preferences
 
 Blocking is local to the player, not a server ban. Preferences persist by room
 ID and session ID in localStorage (up to 200 entries), not by nickname.
-Existing saved blocks from the earlier client are retained; obsolete voice
-mute settings are ignored and dropped when preferences are saved again.
+Existing saved blocks and per-player voice mute settings are retained.
 Without accounts, a block cannot follow someone who returns with a new session.
 
 ## Production
@@ -112,8 +121,9 @@ Server integration tests use port 2568 by default. If occupied, run
 1. Join with different nicknames/colors; verify both rosters and movement.
 2. Walk, run, jump, climb the bridge/ruin, and wade the river. Verify local
    and remote animations and camera controls.
-3. Exchange text messages and verify chat bubbles. There should be no voice
-   panel, microphone prompt, or external audio-service request.
+3. Verify near players exchange text messages/bubbles, while far players do
+   not. Enable voice in two nearby browsers, grant microphone permission, and
+   verify distance attenuation and mute controls. Test with TURN in production.
 4. Block a player; verify incoming and existing messages/bubbles are hidden.
    Unblock them and confirm new messages arrive again.
 5. Briefly interrupt the game socket and restore it within 15 seconds.
