@@ -3,6 +3,7 @@ export interface VoiceControl {
   setMuted(muted: boolean): void;
   setIncoming(enabled: boolean): void;
   setStatus(status: string): void;
+  setDebugStatus(status: string): void;
   dispose(): void;
 }
 
@@ -11,9 +12,10 @@ export function createVoiceControl(actions: {
 }): VoiceControl {
   const root = document.createElement('aside');
   root.id = 'voice-control';
-  root.innerHTML = '<strong>Voice off</strong><small>Microphone is off</small><div><button type="button">Enable voice</button><button type="button" disabled>Mute</button><button type="button">Incoming: on</button></div>';
+  root.innerHTML = '<strong>Voice off</strong><small>Microphone is off</small><code aria-live="polite">No peer diagnostics yet</code><div><button type="button">Enable voice</button><button type="button" disabled>Mute</button><button type="button">Incoming: on</button></div>';
   const title = root.querySelector('strong')!;
   const status = root.querySelector('small')!;
+  const debug = root.querySelector('code')!;
   const [enable, mute, incoming] = Array.from(root.querySelectorAll('button')) as HTMLButtonElement[];
   let enabled = false;
   enable.addEventListener('click', () => enabled ? actions.disable() : actions.enable());
@@ -25,6 +27,7 @@ export function createVoiceControl(actions: {
     setMuted(muted) { mute.textContent = muted ? 'Unmute' : 'Mute'; },
     setIncoming(next) { incoming.textContent = `Incoming: ${next ? 'on' : 'off'}`; },
     setStatus(message) { status.textContent = message; },
+    setDebugStatus(message) { debug.textContent = message; },
     dispose() { root.remove(); },
   };
 }

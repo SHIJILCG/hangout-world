@@ -101,6 +101,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
       voiceControl.setStatus(status);
       voiceControl.setEnabled(voice.isEnabled);
     },
+    onPeerStatus: (id, status) => voiceControl.setDebugStatus(`${id.slice(0, 8)}: ${status}`),
     onSpeaking: (id, speaking) => remotes.setSpeaking(id, speaking),
     onSelfSpeaking: (speaking) => setSpeaking(avatar, speaking),
   }, PROXIMITY.voiceRadius);
@@ -171,16 +172,21 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
       if (target) showBubble(target, text);
     });
     channel.onMessage('voice-config', ({ iceServers }: { iceServers?: IceServerConfig[] }) => {
+      console.info('[voice][colyseus][received] voice-config', { iceServers });
       if (Array.isArray(iceServers)) voice.setIceServers(iceServers);
     });
     channel.onMessage('voice-nearby', ({ id, nearby }: { id: string; nearby: boolean }) => {
+      console.info('[voice][colyseus][received] voice-nearby', { id, nearby });
       voice.setNearby(id, nearby);
     });
     channel.onMessage('voice-signal', ({ from, signal }: { from: string; signal: unknown }) => {
+      console.info('[voice][colyseus][received] voice-signal', { from, signal });
       void voice.handleSignal(from, signal);
     });
     // Register listeners before asking the server for a per-session ICE config.
+    console.info('[voice][colyseus][sent] voice-config');
     channel.send('voice-config', {});
+    console.info('[voice][colyseus][sent] proximity-capable');
     channel.send('proximity-capable', {});
     channel.onLeave(() => {
       voice.resetConnections();

@@ -85,13 +85,21 @@ export class WorldRoom extends Room<WorldState> {
       if (typeof (message as { enabled?: unknown } | null)?.enabled !== 'boolean') return;
       if ((message as { enabled: boolean }).enabled) this.voiceReady.add(client.sessionId);
       else this.voiceReady.delete(client.sessionId);
+      console.info('[voice-server] voice-ready', { id: client.sessionId, enabled: this.voiceReady.has(client.sessionId) });
       this.syncVoiceRelationships(client.sessionId);
     });
 
     this.onMessage('voice-signal', (client, message: unknown) => {
       if (!isVoiceSignal(message)) return;
       const target = this.clientById(message.to);
-      if (!target || !this.isVoiceLinked(client.sessionId, message.to)) return;
+      if (!target || !this.isVoiceLinked(client.sessionId, message.to)) {
+        console.warn('[voice-server] signaling denied', {
+          from: client.sessionId, to: message.to, targetExists: Boolean(target),
+          authorized: this.isVoiceLinked(client.sessionId, message.to),
+        });
+        return;
+      }
+      console.info('[voice-server] signaling forwarded', { from: client.sessionId, to: message.to });
       target.send('voice-signal', { from: client.sessionId, signal: message.signal });
     });
     this.onMessage('voice-config', (client) => {
@@ -144,9 +152,18 @@ export class WorldRoom extends Room<WorldState> {
   private syncVoiceRelationships(playerId: string): void {
     for (const otherId of this.state.players.keys()) {
       if (otherId === playerId) continue;
+      const player = this.state.players.get(playerId);
+      const other = this.state.players.get(otherId);
+      const distance = player && other ? Math.hypot(player.x - other.x, player.z - other.z) : Infinity;
       const shouldLink = this.voiceReady.has(playerId)
         && this.voiceReady.has(otherId)
         && this.getNearbyPlayers(playerId).includes(otherId);
+      console.info('[voice-server] proximity authorization evaluated', {
+        playerId, otherId, distance, radius: PROXIMITY.voiceRadius, shouldLink,
+        playerReady: this.voiceReady.has(playerId),
+        otherReady: this.voiceReady.has(otherId),
+        nearby: this.getNearbyPlayers(playerId).includes(otherId),
+      });
       this.setVoiceLink(playerId, otherId, shouldLink);
     }
   }
@@ -156,6 +173,7 @@ export class WorldRoom extends Room<WorldState> {
     const hadLink = this.voiceLinks.has(key);
     if (linked === hadLink) return;
     if (linked) this.voiceLinks.add(key); else this.voiceLinks.delete(key);
+    console.info('[voice-server] voice link changed', { a, b, linked });
     this.clientById(a)?.send('voice-nearby', { id: b, nearby: linked });
     this.clientById(b)?.send('voice-nearby', { id: a, nearby: linked });
   }

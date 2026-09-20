@@ -23,6 +23,7 @@ button:not(:disabled):hover { filter: brightness(1.14); }
   background: #203d35ed; border: 1px solid #617b67; border-radius: 14px; }
 #voice-control strong, #voice-control small { display: block; }
 #voice-control small { color: #d5debd; margin-top: 5px; }
+#voice-control code { display: block; color: #f2d58d; margin-top: 5px; font-size: 10px; white-space: pre-wrap; }
 #voice-control div { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 #voice-control button { padding: 5px 7px; border: 1px solid #698474; border-radius: 6px; color: #fff5da; background: #385748; }
 @media (max-width: 760px) {
