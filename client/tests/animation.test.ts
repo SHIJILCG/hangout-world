@@ -40,11 +40,13 @@ describe('explorer animations', () => {
       }
     });
     expect(triangles).toBeLessThan(3000);
-    const tunic = avatar.getObjectByName('tunic');
-    expect(tunic).toBeInstanceOf(THREE.Mesh);
-    if (tunic instanceof THREE.Mesh && tunic.material instanceof THREE.MeshStandardMaterial) {
-      expect(tunic.material.color.getHex()).toBe(0xf07865);
+    const overalls = avatar.getObjectByName('overalls');
+    expect(overalls).toBeInstanceOf(THREE.Mesh);
+    if (overalls instanceof THREE.Mesh && overalls.material instanceof THREE.MeshStandardMaterial) {
+      expect(overalls.material.color.getHex()).toBe(0xf07865);
     }
+    expect(avatar.getObjectByName('single-eye')).toBeInstanceOf(THREE.Mesh);
+    expect(avatar.getObjectByName('yellow-body')).toBeInstanceOf(THREE.Mesh);
     disposeAvatar(avatar);
   });
 

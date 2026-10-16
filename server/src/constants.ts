@@ -1,9 +1,22 @@
 // MUST MATCH client values:
-//   WORLD_HALF  ↔ client/src/world/map.ts (meadow: 80x80 world)
+//   WORLD_HALF  ↔ client/src/world/map.ts (meadow: 160x160 world)
 //   SPAWN       ↔ client/src/world/map.ts
 // Any change here must be mirrored there (and vice versa).
-export const WORLD_HALF = 40;
-export const SPAWN = { x: 0, y: 0, z: 8 };
+export const WORLD_HALF = 80;
+export interface SpawnPoint { x: number; y: number; z: number }
+export const SPAWN_POINTS: readonly SpawnPoint[] = [
+  { x: 0, y: 0, z: 8 },
+  { x: 1.9, y: 0, z: 8 },
+  { x: 1.55, y: 0, z: 6.8 },
+  { x: 0.6, y: 0, z: 5.8 },
+  { x: -0.6, y: 0, z: 5.8 },
+  { x: -1.55, y: 0, z: 6.8 },
+  { x: -1.9, y: 0, z: 8 },
+  { x: -1.55, y: 0, z: 9.2 },
+  { x: -0.6, y: 0, z: 9.5 },
+  { x: 0.6, y: 0, z: 9.2 },
+] as const;
+export const SPAWN: SpawnPoint = SPAWN_POINTS[0]!;
 
 // Server-only tuning:
 export const MIN_Y = -1;       // riverbed depth (wading allowed below surface; depth ≈ −0.8)
@@ -18,7 +31,7 @@ export const CHAT_MAX_LENGTH = 200;  // chars per message after trim
 export const CHAT_BURST = 3;         // instant messages before throttling
 export const CHAT_REFILL_MS = 1000;  // one token back per second
 
-// Social distances use horizontal world metres (the meadow is 80 x 80 m).
+// Social distances use horizontal world metres (the meadow is 160 x 160 m).
 export const PROXIMITY = {
   chatRadius: 18,
   voiceRadius: 22,

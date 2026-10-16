@@ -1,3 +1,5 @@
+
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -23,9 +25,9 @@
     <aside>
       <small>Hangout World / Environment asset</small>
       <h1>Fantasy Meadow Valley</h1>
-      <p>An 80 × 80 m meadow of faceted grasslands, old stone, and a quiet river. An empty clearing for the world you build next.</p>
+      <p>A 160 × 160 m meadow of rolling grasslands, old stone, and a quiet river.</p>
       <nav>
-        <button id="overview">Overview</button><button id="bridge">Bridge</button>
+        <button id="overview">Overview</button><button id="hills">Hills</button><button id="bridge">Bridge</button>
         <button id="ruin">Ruins</button><button id="center">Meadow</button>
         <button id="backdrop">Backdrop</button>
         <a href="/models/fantasy-meadow.glb" download>Download GLB</a>
@@ -48,7 +50,7 @@
       document.body.append(renderer.domElement);
       const scene = new THREE.Scene();
       scene.background = new THREE.Color('#c1dfe3');
-      scene.fog = new THREE.Fog('#c1dfe3', 180, 400);
+      scene.fog = new THREE.Fog('#c1dfe3', 220, 470);
       const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 500);
       const controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
@@ -60,11 +62,12 @@
       sun.position.set(-32, 60, 25);
       sun.castShadow = true;
       sun.shadow.mapSize.set(2048, 2048);
-      Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, far: 170 });
+      Object.assign(sun.shadow.camera, { left: -85, right: 85, top: 85, bottom: -85, far: 210 });
       sun.shadow.normalBias = 0.06;
       scene.add(sun);
       const views = {
-        overview: [[85, 83, 96], [0, 3, 0]],
+        overview: [[112, 106, 126], [0, 0, 0]],
+        hills: [[-96, 24, 31], [-55, 0.5, 31]],
         bridge: [[46, 13, 47], [30, 0.5, 30]],
         ruin: [[-7, 10, 1], [-18, 1.4, -12]],
         center: [[0, 2.3, 6], [-9, 4, -28]],

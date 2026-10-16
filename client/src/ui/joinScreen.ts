@@ -4,8 +4,9 @@ const CSS = `
 #join-screen { position: fixed; inset: 0; display: flex; align-items: center;
   justify-content: center; background: radial-gradient(ellipse at 25% 20%, #6c9d78, transparent 60%), linear-gradient(150deg, #a6d8db, #547a5f 55%, #203d35); z-index: 10;
   font-family: system-ui, sans-serif; }
-#join-card { background: #203d35f2; border: 1px solid #91ab88; border-radius: 20px; padding: 36px;
-  width: min(360px, 80vw); display: flex; flex-direction: column; gap: 16px; box-shadow: 0 24px 80px #16332866; }
+#join-card { background: #203d35f2; border: 1px solid #91ab88; border-radius: 20px; padding: 16px 24px;
+  width: min(432px, 92vw); max-height: calc(100vh - 24px); overflow-y: auto; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 9px; box-shadow: 0 24px 80px #16332866; }
 #join-card h1 { margin: 0; font-size: 30px; color: #fff5da; }
 #join-card p { margin: 0; color: #ccd9bd; line-height: 1.6; font-size: 14px; }
 #join-card small { color: #d7d995; text-transform: uppercase; letter-spacing: 2px; }
@@ -37,7 +38,7 @@ export function showJoinScreen(
       <p>Wander the meadow, climb the old ruins, and meet someone new.</p>
       <label for="join-name">Your nickname</label>
       <input id="join-name" maxlength="16" placeholder="Your nickname" autocomplete="nickname" />
-      <span>Choose your explorer's color</span>
+      <span>Choose your overalls color</span>
       <div id="join-swatches" role="group" aria-label="Explorer color"></div>
       <p>Press Enter in the world to chat with other explorers.</p>
       <p id="join-error" role="alert"></p>
@@ -53,7 +54,7 @@ export function showJoinScreen(
     b.className = 'join-swatch' + (i === 0 ? ' selected' : '');
     b.dataset.index = String(i);
     b.type = 'button';
-    b.setAttribute('aria-label', ['Blue', 'Coral', 'Mint', 'Yellow', 'Purple', 'Orange'][i]);
+    b.setAttribute('aria-label', `${['Blue', 'Coral', 'Mint', 'Yellow', 'Purple', 'Orange'][i]} overalls`);
     b.setAttribute('aria-pressed', String(i === 0));
     b.style.background = '#' + color.toString(16).padStart(6, '0');
     b.addEventListener('click', () => {

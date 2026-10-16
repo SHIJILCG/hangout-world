@@ -1,10 +1,17 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { groundHeight, TERRAIN_SEGMENTS } from './terrain.mjs';
+export { groundHeight };
 
 export const SPEC = Object.freeze({
   seed: 728194,
-  playableHalf: 40,
+  playableHalf: 80,
   emptyRadius: 10,
+  spawnPoints: [
+    [0, 8], [1.9, 8], [1.55, 6.8], [0.6, 5.8], [-0.6, 5.8],
+    [-1.55, 6.8], [-1.9, 8], [-1.55, 9.2], [-0.6, 9.5], [0.6, 9.2],
+  ],
+  zones: ['village', 'park', 'activity-meadow', 'stable', 'ruins', 'forest', 'countryside'],
   riverWidth: 4,
   bridgeCenter: 30,
   bridgeHeight: 1,
@@ -15,7 +22,7 @@ export const SPEC = Object.freeze({
 
 const palette = {
   grass: ['#79b94e', '#7bbb50', '#7ebd51', '#76b54b', '#81bf53'],
-  dirt: ['#cda46d', '#d5ae78', '#c39b65'],
+  dirt: ['#9b754e'],
   stone: ['#929b92', '#aab1a3', '#bac0ae', '#828f89'],
   leaf: ['#518e42', '#66a347', '#78b54c', '#99c659'],
 };
@@ -26,17 +33,6 @@ export const bridgePoint = (v, u = 0) => [
   SPEC.bridgeCenter + (v + u) / Math.SQRT2,
   SPEC.bridgeCenter + (v - u) / Math.SQRT2,
 ];
-
-export function groundHeight(x, z) {
-  const r = Math.hypot(x, z);
-  const hills = (0.35 + 0.28 * Math.sin(x * 0.18) * Math.cos(z * 0.2)
-    + 0.18 * Math.sin(z * 0.29 + x * 0.1)) * smooth((r - 11.5) / 7);
-  const ruinFlat = 1 - smooth(Math.max((Math.abs(x + 18) - 5.5) / 2, (Math.abs(z + 11) - 9) / 2));
-  const cornerFlat = 1 - smooth((Math.abs(riverV(x, z)) - 7) / 3);
-  const base = hills * (1 - Math.max(ruinFlat, cornerFlat));
-  const bank = smooth((Math.abs(riverV(x, z)) - 2) / 1.3);
-  return base * bank - 0.8 * (1 - bank);
-}
 
 function randomSource(seed) {
   let state = seed >>> 0;
@@ -52,11 +48,17 @@ function segmentDistance(x, z, a, b) {
   return Math.hypot(x - a[0] - t * dx, z - a[1] - t * dz);
 }
 
-const pathCurves = [
-  [[-SPEC.playableHalf, 7], [-35, 6], [-30, 4], [-23, 3], [-16, 6], [-12, 9]],
-  [[-9, -12], [-8, -21], [-3, -26], [3, -30], [7, -35], [5, -SPEC.playableHalf]],
-  [[9, 12], [13, 13], [23, 23], bridgePoint(0), [35, 35], [38, SPEC.playableHalf]],
-  [[13, -3], [21, -6], [26, -4], [30, -7], [35, -8], [SPEC.playableHalf, -5]],
+export const pathCurves = [
+  // Main roads connect the plaza to every edge and remain curved rather than
+  // becoming a grid when the playable square expands.
+  [[-SPEC.playableHalf, 7], [-68, 7], [-55, 7], [-39, 5], [-23, 3], [-12, 9]],
+  [[-9, -12], [-8, -21], [-3, -30], [3, -39], [7, -55], [5, -68], [5, -SPEC.playableHalf]],
+  [[9, 12], [14, 13], [23, 20], bridgePoint(0), [40, 40], [57, 57], [68, 68], [SPEC.playableHalf, SPEC.playableHalf]],
+  [[13, -3], [21, -6], [30, -7], [39, -10], [55, -8], [68, -5], [SPEC.playableHalf, -5]],
+  // Secondary lanes serve the village, paddock, park, and countryside.
+  [[-42, 25], [-34, 22], [-27, 17], [-19, 13], [-12, 9]],
+  [[12, 9], [20, 5], [29, 1], [38, 2], [47, 12]],
+  [[-7, -13], [3, -19], [15, -24], [25, -29], [36, -36]],
 ].map((points) => new THREE.CatmullRomCurve3(points.map(([x, z]) => new THREE.Vector3(x, 0, z)))
   .getPoints(90).map((p) => [p.x, p.z]));
 
@@ -84,8 +86,10 @@ export function buildMeadow() {
       new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation),
       new THREE.Vector3(...scale),
     ));
-    flat.deleteAttribute('normal');
-    flat.computeVertexNormals();
+    if (extras.role !== 'terrain') {
+      flat.deleteAttribute('normal');
+      flat.computeVertexNormals();
+    }
     if (!flat.getAttribute('color')) {
       const colors = [];
       const base = new THREE.Color(color);
@@ -103,27 +107,42 @@ export function buildMeadow() {
     return add(name, new THREE.BoxGeometry(w, h, d), color, [x, bottom + h / 2, z], [1, 1, 1], rotation, extras);
   }
 
-  const terrainPositions = [], terrainColors = [];
-  for (let z = -half; z < half; z++) {
-    for (let x = -half; x < half; x++) {
-      const corners = [[x, z], [x, z + 1], [x + 1, z + 1], [x + 1, z]];
-      const triangles = (x + z) % 2 ? [[0, 1, 3], [1, 2, 3]] : [[0, 1, 2], [0, 2, 3]];
-      for (const triangle of triangles) {
-        const cx = triangle.reduce((sum, i) => sum + corners[i][0], 0) / 3;
-        const cz = triangle.reduce((sum, i) => sum + corners[i][1], 0) / 3;
-        const inRiver = Math.abs(riverV(cx, cz)) < 3;
-        const color = new THREE.Color(inRiver ? '#abac75' : choose(pathDistance(cx, cz) < 1.05 ? palette.dirt : palette.grass));
-        for (const i of triangle) {
-          const [px, pz] = corners[i];
-          terrainPositions.push(px, groundHeight(px, pz), pz);
-          terrainColors.push(color.r, color.g, color.b);
-        }
-      }
+  const terrainPositions = [], terrainColors = [], terrainIndices = [];
+  const terrainSpacing = (half * 2) / TERRAIN_SEGMENTS;
+  const grassBase = new THREE.Color().setRGB(0.19, 0.36, 0.12);
+  const grassTop = new THREE.Color('#bad67a');
+  for (let iz = 0; iz <= TERRAIN_SEGMENTS; iz++) {
+    const z = -half + iz * terrainSpacing;
+    for (let ix = 0; ix <= TERRAIN_SEGMENTS; ix++) {
+      const x = -half + ix * terrainSpacing;
+      const height = groundHeight(x, z);
+      terrainPositions.push(x, height, z);
+      const variation = 0.93 + 0.05 * Math.sin(x * 0.31) * Math.cos(z * 0.27)
+        + 0.025 * Math.sin((x + z) * 0.69);
+      const color = Math.abs(riverV(x, z)) < 2
+        ? new THREE.Color('#abac75')
+        : Math.hypot(x, z) > 12 && pathDistance(x, z) < 2.4
+          ? new THREE.Color('#9b754e')
+          : grassBase.clone().lerp(grassTop, smooth((height + 0.6) / 3.6)).multiplyScalar(variation);
+      terrainColors.push(color.r, color.g, color.b);
+    }
+  }
+  const rowLength = TERRAIN_SEGMENTS + 1;
+  for (let iz = 0; iz < TERRAIN_SEGMENTS; iz++) {
+    for (let ix = 0; ix < TERRAIN_SEGMENTS; ix++) {
+      const a = iz * rowLength + ix;
+      const b = a + 1;
+      const c = a + rowLength;
+      const d = c + 1;
+      if ((ix + iz) % 2) terrainIndices.push(a, c, b, b, c, d);
+      else terrainIndices.push(a, c, d, a, d, b);
     }
   }
   const terrain = new THREE.BufferGeometry();
   terrain.setAttribute('position', new THREE.Float32BufferAttribute(terrainPositions, 3));
   terrain.setAttribute('color', new THREE.Float32BufferAttribute(terrainColors, 3));
+  terrain.setIndex(terrainIndices);
+  terrain.computeVertexNormals();
   add(`Meadow terrain - ${half * 2}m square`, terrain, '#ffffff', undefined, undefined, 0, { role: 'terrain', walkable: true });
 
   // Clip the diagonal river strip to the playable square rather than extending water beyond it.
@@ -191,7 +210,7 @@ export function buildMeadow() {
   for (const side of [-1, 1]) {
     for (let i = 0; i < 4; i++) {
       box(`Ruin pier ${side} ${i}`, archX + side * 1.8, archZ, 0.6, 0.3125, 1.3,
-        choose(palette.stone), i * 0.3125, 0, { role: 'ruin' });
+        choose(palette.stone), i * 0.3125, 0, { role: 'ruin', zone: 'ruins' });
     }
   }
   for (let i = 0; i < 9; i++) {
@@ -203,7 +222,7 @@ export function buildMeadow() {
     shape.lineTo(1.5 * Math.cos(b), 1.25 + 1.5 * Math.sin(b));
     shape.closePath();
     add(`Ruin arch voussoir ${i + 1}`, new THREE.ExtrudeGeometry(shape, { depth: 1.3, bevelEnabled: false }),
-      choose(palette.stone), [archX, 0, archZ - 0.65], undefined, 0, { role: 'ruin' });
+      choose(palette.stone), [archX, 0, archZ - 0.65], undefined, 0, { role: 'ruin', zone: 'ruins' });
   }
   const spandrel = new THREE.Shape();
   spandrel.moveTo(2.1, 1.25);
@@ -215,9 +234,9 @@ export function buildMeadow() {
   }
   spandrel.closePath();
   add('Ruin stonework above arch', new THREE.ExtrudeGeometry(spandrel, { depth: 1.24, bevelEnabled: false }),
-    '#9da691', [archX, 0, archZ - 0.62], undefined, 0, { role: 'ruin' });
+    '#9da691', [archX, 0, archZ - 0.62], undefined, 0, { role: 'ruin', zone: 'ruins' });
   box('Ruin climbable crown', archX, archZ, 5.5, 0.25, 2.15, '#bdc1ad', 3.35, 0,
-    { role: 'ruin-crown', walkable: true, top: 3.6 });
+    { role: 'ruin-crown', zone: 'ruins', walkable: true, top: 3.6 });
   for (let i = 0; i < 12; i++) {
     const top = (i + 1) * 0.3;
     const blocks = [];
@@ -231,41 +250,70 @@ export function buildMeadow() {
     for (const block of blocks) block.dispose();
     if (!pile) throw new Error('Could not merge ruin blocks');
     add(`Ruin fallen block step ${i + 1}`, pile, choose(palette.stone), [-20.1, 0, -5.15 - i * 0.85], undefined, 0,
-      { role: 'ruin-step', route: 'ruin', step: i + 1, top, rise: 0.3, run: 0.85, walkable: true });
+      { role: 'ruin-step', zone: 'ruins', route: 'ruin', step: i + 1, top, rise: 0.3, run: 0.85, walkable: true });
   }
   for (let i = 0; i < 9; i++) {
     const x = -22.2 - random() * 1.3, z = -7 - random() * 10;
     box(`Ruin scattered rubble ${i}`, x, z, 0.5 + random() * 0.5, 0.2 + random() * 0.4, 0.5 + random() * 0.4,
-      choose(palette.stone), groundHeight(x, z), random() * 3, { role: 'ruin-rubble' });
+      choose(palette.stone), groundHeight(x, z), random() * 3, { role: 'ruin-rubble', zone: 'ruins' });
   }
   for (const [x, z, height] of [[-14, -19, 1.2], [-23, -19, 1.8], [-13.5, -15.5, 0.6]]) {
-    box(`Broken column footing ${x}`, x, z, 1.4, 0.25, 1.4, '#9da691', 0, 0, { role: 'ruin' });
+    box(`Broken column footing ${x}`, x, z, 1.4, 0.25, 1.4, '#9da691', 0, 0, { role: 'ruin', zone: 'ruins' });
     add(`Broken column ${x}`, new THREE.CylinderGeometry(0.45, 0.55, height, 7, 1), '#b6bca8',
-      [x, height / 2 + 0.25, z], undefined, 0, { role: 'ruin' });
+      [x, height / 2 + 0.25, z], undefined, 0, { role: 'ruin', zone: 'ruins' });
   }
 
-  const trees = [[-34, 18], [-29, -34], [-8, -25], [17, -34], [35, -17], [32, 4], [9, 35], [-12, 33], [-33, -5], [-23, 25]];
-  for (let i = 0; i < trees.length; i++) {
-    const [x, z] = trees[i], y = groundHeight(x, z), height = 4.5 + random() * 1.5;
-    add(`Tree ${i + 1} trunk`, new THREE.CylinderGeometry(0.22, 0.38, height * 0.62, 5), '#795539',
-      [x, y + height * 0.31, z], undefined, 0, { role: 'tree-trunk', tree: i + 1 });
-    if (i % 3 === 0) {
-      for (let j = 0; j < 3; j++) {
-        add(`Tree ${i + 1} conifer tier ${j}`, new THREE.ConeGeometry(2 - j * 0.42, 2.4, 7),
-          choose(palette.leaf), [x, y + 2.5 + j * 1.05, z], undefined, i, { role: 'tree-canopy', tree: i + 1 });
-      }
-    } else {
-      add(`Tree ${i + 1} faceted crown`, new THREE.IcosahedronGeometry(1, 1),
-        choose(palette.leaf), [x, y + height * 0.78, z], [2.4, 2.1, 2.15], i, { role: 'tree-canopy', tree: i + 1 });
-      add(`Tree ${i + 1} crown lobe`, new THREE.IcosahedronGeometry(1, 0),
-        choose(palette.leaf), [x + 1.2, y + height * 0.69, z + 0.5], [1.55, 1.55, 1.5], i, { role: 'tree-canopy', tree: i + 1 });
-    }
+  // Landmark buildings are deliberately simple: only the wall footprint is
+  // semantic collision, while roofs and trim stay visual-only.
+  function house(label, x, z, rotation = 0) {
+    const y = groundHeight(x, z);
+    box(`${label} walls`, x, z, 5.2, 2.4, 4.2, '#c69c6b', y, rotation,
+      { role: 'building', zone: 'village' });
+    add(`${label} roof`, new THREE.ConeGeometry(3.7, 2.1, 4), '#8f5d52',
+      [x, y + 3.45, z], [1, 1, 0.8], Math.PI / 4 + rotation,
+      { role: 'building-roof', zone: 'village' });
+    box(`${label} door`, x + Math.sin(rotation) * 2.12, z + Math.cos(rotation) * 2.12,
+      0.8, 1.3, 0.1, '#654939', y, rotation, { role: 'furniture', zone: 'village' });
+  }
+  house('Village cottage west', -31, 16, -0.2);
+  house('Village cottage east', -24, 20, 0.25);
+  house('Village hall', -35, 25, 0.1);
+
+  // Keep the town edge dense while leaving the central spawn plaza open.
+  box('Town hall walls', -15, 8, 5.5, 2.5, 4.5, '#b88b5c', groundHeight(-15, 8), 0,
+    { role: 'building', zone: 'town' });
+  add('Town hall roof', new THREE.ConeGeometry(3.8, 2.2, 4), '#7f5148',
+    [-15, groundHeight(-15, 8) + 3.7, 8], [1, 1, 0.8], Math.PI / 4,
+    { role: 'building-roof', zone: 'town' });
+  for (const [x, z] of [[13, 4], [13, 12]]) {
+    box(`Town market stall ${x} ${z}`, x, z, 3, 1.5, 2, '#a9794d', groundHeight(x, z), 0,
+      { role: 'building', zone: 'town' });
+    add(`Town market canopy ${x} ${z}`, new THREE.ConeGeometry(2.1, 1.2, 4), '#b94f46',
+      [x, groundHeight(x, z) + 2.1, z], [1, 1, 0.7], Math.PI / 4,
+      { role: 'building-roof', zone: 'town' });
   }
 
-  function fence(points, label) {
+  // Pond/lake water is a visual surface; the heightfield remains the only
+  // walkable ground there, so players can wade out just like the river.
+  const pondX = 26, pondZ = -23, pondY = groundHeight(pondX, pondZ) - 0.12;
+  add('Park pond shore', new THREE.CylinderGeometry(1, 1, 0.18, 16), '#8ba982',
+    [pondX, pondY, pondZ], [7, 1, 5], 0.15, { role: 'pond-shore', zone: 'park' });
+  add('Park pond water', new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2), '#4d9ea7',
+    [pondX, pondY + 0.04, pondZ], [6.5, 1, 4.5], 0.15, { role: 'pond', zone: 'park' });
+
+  // Activity meadow markers give the social centre readable landmarks without
+  // adding a second map or a separate scene.
+  for (const [x, z] of [[34, 5], [46, 5]]) {
+    box(`Activity meadow post ${x}`, x, z, 0.18, 2.1, 0.18, '#795434', groundHeight(x, z), 0,
+      { role: 'activity', zone: 'activity-meadow' });
+    box(`Activity meadow crossbar ${x}`, x, z, 2.2, 0.16, 0.16, '#a07948', groundHeight(x, z) + 1.6, 0,
+      { role: 'activity', zone: 'activity-meadow' });
+  }
+
+  function fence(points, label, zone = 'countryside') {
     for (let i = 0; i < points.length; i++) {
       const [x, z] = points[i], base = groundHeight(x, z);
-      box(`Fence ${label} post ${i}`, x, z, 0.18, 1.05, 0.18, '#795434', base, 0, { role: 'fence' });
+      box(`Fence ${label} post ${i}`, x, z, 0.18, 1.05, 0.18, '#795434', base, 0, { role: 'fence', zone });
       if (i === 0) continue;
       const [px, pz] = points[i - 1], previousY = groundHeight(px, pz);
       for (const h of [0.4, 0.8]) {
@@ -274,13 +322,49 @@ export function buildMeadow() {
         const geometry = new THREE.BoxGeometry(direction.length(), 0.13, 0.11);
         geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), direction.normalize()));
         add(`Fence ${label} rail ${i} ${h}`, geometry, '#a07948', start.add(end).multiplyScalar(0.5).toArray(),
-          undefined, 0, { role: 'fence' });
+          undefined, 0, { role: 'fence', zone });
       }
     }
   }
-  fence([[-28, 6.6], [-25.5, 6], [-23, 6], [-20.5, 6.5]], 'west path');
-  fence([[18, -8.7], [20.5, -8.9], [23, -8.2], [25.5, -6.9]], 'east path');
-  fence([[-6.4, -19], [-5.5, -21.5], [-4, -23.5]], 'north path');
+
+  // Stable and paddock beside the secondary road.
+  box('Stable walls', 30, -34, 7, 2.8, 5, '#a9784c', groundHeight(30, -34), 0,
+    { role: 'building', zone: 'stable' });
+  box('Stable roof', 30, -34, 7.8, 0.2, 5.8, '#714d43', groundHeight(30, -34) + 2.9, 0,
+    { role: 'building-roof', zone: 'stable' });
+  fence([[18, -40], [29, -42], [42, -39], [43, -28], [23, -27]], 'stable paddock', 'stable');
+  for (const [x, z] of [[42, -4], [48, -1], [40, 12]]) {
+    box(`Countryside hay bale ${x}`, x, z, 1.2, 0.9, 1.2, '#d6b35e', groundHeight(x, z), 0.2,
+      { role: 'countryside-detail', zone: 'countryside' });
+  }
+
+  const trees = [
+    [-52, 34], [-47, 43], [-40, 51], [-31, 43], [-22, 50],
+    [33, -48], [42, -42], [51, -34], [45, -24], [54, -14],
+    [-48, -10], [-43, 4], [42, 6], [52, 18], [-15, 43],
+    [6, 48], [19, 52], [-4, -44], [12, -50], [32, 42],
+    [-53, -44], [-23, -49], [48, 34], [35, 28], [-45, 28],
+  ];
+  for (let i = 0; i < trees.length; i++) {
+    const [x, z] = trees[i], y = groundHeight(x, z), height = 4.5 + random() * 1.5;
+    const zone = (x < -38 || z > 40 || z < -40) ? 'forest' : 'countryside';
+    add(`Tree ${i + 1} trunk`, new THREE.CylinderGeometry(0.22, 0.38, height * 0.62, 5), '#795539',
+      [x, y + height * 0.31, z], undefined, 0, { role: 'tree-trunk', tree: i + 1, zone });
+    if (i % 3 === 0) {
+      for (let j = 0; j < 3; j++) {
+        add(`Tree ${i + 1} conifer tier ${j}`, new THREE.ConeGeometry(2 - j * 0.42, 2.4, 7),
+          choose(palette.leaf), [x, y + 2.5 + j * 1.05, z], undefined, i, { role: 'tree-canopy', tree: i + 1, zone });
+      }
+    } else {
+      add(`Tree ${i + 1} faceted crown`, new THREE.IcosahedronGeometry(1, 1),
+        choose(palette.leaf), [x, y + height * 0.78, z], [2.4, 2.1, 2.15], i, { role: 'tree-canopy', tree: i + 1, zone });
+      add(`Tree ${i + 1} crown lobe`, new THREE.IcosahedronGeometry(1, 0),
+        choose(palette.leaf), [x + 1.2, y + height * 0.69, z + 0.5], [1.55, 1.55, 1.5], i, { role: 'tree-canopy', tree: i + 1, zone });
+    }
+  }
+  fence([[-28, 6.6], [-25.5, 6], [-23, 6], [-20.5, 6.5]], 'west path', 'village');
+  fence([[18, -8.7], [20.5, -8.9], [23, -8.2], [25.5, -6.9]], 'east path', 'park');
+  fence([[-6.4, -19], [-5.5, -21.5], [-4, -23.5]], 'north path', 'ruins');
 
   const rocks = [
     [-26, 9], [-24, 10], [18, -15], [20, -16], [-5, 19], [-3, 20], [10, -20], [28, -2], [-27, -15], [6, 22],

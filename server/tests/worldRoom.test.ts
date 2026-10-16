@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { boot, type ColyseusTestServer } from '@colyseus/testing';
 import appConfig from '../src/app.config';
-import { MAX_STEP, SPAWN, MAX_CLIENTS } from '../src/constants';
+import { MAX_STEP, SPAWN, SPAWN_POINTS, MAX_CLIENTS } from '../src/constants';
 
 describe('WorldRoom', () => {
   let colyseus: ColyseusTestServer;
@@ -215,7 +215,7 @@ describe('WorldRoom', () => {
     await room.waitForNextPatch();
     expect(room.state.players.size).toBe(2);
     expect(room.state.players.get(a.sessionId)!.x).toBeCloseTo(0.5, 4);
-    expect(room.state.players.get(b.sessionId)!.x).toBe(SPAWN.x);
+    expect(room.state.players.get(b.sessionId)!.x).toBe(SPAWN_POINTS[1]!.x);
   });
 
   it('relays proximity chat only to players inside the server-owned radius', async () => {

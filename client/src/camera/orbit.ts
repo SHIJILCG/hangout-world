@@ -3,7 +3,7 @@ export const MAX_PITCH = 1.2;
 export const MIN_DIST = 2;
 export const MAX_DIST = 10;
 
-const DRAG_SENSITIVITY = 0.005;   // radians per px
+const LOOK_SENSITIVITY = 0.0025;  // radians per pointer-lock pixel
 const ZOOM_SENSITIVITY = 0.002;   // distance units per wheel deltaY
 const HEAD_OFFSET = 1.5;          // aim above the feet, at head height
 
@@ -16,9 +16,14 @@ export class OrbitCamera {
   pitch = 0.4;
   distance = 6;
 
+  applyLook(dx: number, dy: number): void {
+    this.yaw -= dx * LOOK_SENSITIVITY;
+    this.pitch = clamp(this.pitch + dy * LOOK_SENSITIVITY, MIN_PITCH, MAX_PITCH);
+  }
+
+  /** Kept for headless callers and compatibility with the previous orbit API. */
   applyDrag(dx: number, dy: number): void {
-    this.yaw -= dx * DRAG_SENSITIVITY;
-    this.pitch = clamp(this.pitch + dy * DRAG_SENSITIVITY, MIN_PITCH, MAX_PITCH);
+    this.applyLook(dx, dy);
   }
 
   applyZoom(deltaY: number): void {

@@ -29,6 +29,7 @@ describe('clampColorIndex', () => {
     expect(clampColorIndex(0)).toBe(0);
     expect(clampColorIndex(5)).toBe(5);
   });
+
   it('clamps/repairs invalid input to 0', () => {
     expect(clampColorIndex(99)).toBe(0);
     expect(clampColorIndex(-1)).toBe(0);

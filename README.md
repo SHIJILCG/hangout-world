@@ -1,7 +1,7 @@
 # Hangout World
 
 A browser-based multiplayer hangout in a colorful, low-poly fantasy meadow.
-Pick a nickname and an explorer color, wander with other players, climb the
+Pick a nickname and outfit color, wander with other players, climb the
 old ruins, and chat above your characters' heads. No accounts required.
 
 Built for desktop browsers with **Three.js, TypeScript, Vite, and Colyseus**.
@@ -10,11 +10,12 @@ Built for desktop browsers with **Three.js, TypeScript, Vite, and Colyseus**.
 
 - **A shared world for up to 20 players** with smooth remote-player movement,
   automatic full-room retries, and recovery from brief connection drops.
-- **An 80 x 80 meter meadow** with rolling hills, wildflowers, winding paths,
-  trees, fences, a river, a walkable stone bridge, and climbable ruins.
+- **A 160 x 160 meter rolling meadow** with a connected medieval village/social centre,
+  park pond, activity meadow, stable/paddock, forest, countryside, winding
+  curved paths, a river, a walkable stone bridge, and climbable ruins.
   Snowy mountains, a castle, and a lake form the distant backdrop.
-- **Rounded low-poly explorers** in six colors, with idle, walk, run, and jump
-  animations.
+- **One Minion-style default avatar** in six outfit colors, animated with a
+  lightweight built-in walk, run, and jump gait. No character model downloads.
 - **Proximity text chat and WebRTC voice:** messages and voice reach only nearby players; voice is opt-in, has mute controls, and uses distance-based volume.
   Bubbles wrap long messages and stay a consistent screen size as the camera
   moves; the chat panel shows the full message.
@@ -72,7 +73,7 @@ npm ci
 npm run dev
 ```
 
-Open **http://localhost:5173**, choose a nickname and color, and enter the world.
+Open **http://localhost:5173**, choose a nickname, character, and color, and enter the world.
 Open another browser tab or window to try multiplayer.
 
 The game server runs on port **2567** by default. No environment file or

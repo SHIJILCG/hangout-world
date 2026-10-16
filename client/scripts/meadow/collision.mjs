@@ -2,13 +2,20 @@
 // client/src/world/collision.ts from the same generator source of truth as
 // the GLB (buildMeadow's meshes/extras + scene.mjs's exported helpers).
 import { buildMeadow, SPEC, groundHeight, bridgePoint } from './scene.mjs';
+import { TERRAIN_SAMPLES } from './terrain.mjs';
 
 const round3 = (n) => Math.round(n * 1000) / 1000;
 
 // SKIP: no collision volume at all.
-const SKIP_ROLES = new Set(['flowers', 'river', 'river-detail', 'tree-canopy', 'terrain', 'backdrop']);
+const SKIP_ROLES = new Set([
+  'flowers', 'river', 'river-detail', 'pond', 'pond-shore', 'tree-canopy',
+  'terrain', 'backdrop', 'building-roof', 'furniture', 'activity', 'countryside-detail',
+]);
 // WHOLE-MESH AABB blockers.
-const BLOCKER_ROLES = new Set(['fence', 'rock', 'ruin', 'ruin-rubble', 'tree-trunk', 'bridge-parapet', 'bridge-structure']);
+const BLOCKER_ROLES = new Set([
+  'fence', 'rock', 'ruin', 'ruin-rubble', 'tree-trunk', 'building',
+  'bridge-parapet', 'bridge-structure',
+]);
 // WALKABLE axis-aligned: whole-mesh AABB in X/Z, but forced Y range.
 // 'ruin-step' piles genuinely start at ground level, so minY is forced to 0
 // (clean stack, ignoring tiny inter-block gaps). 'ruin-crown' is an elevated
@@ -32,14 +39,15 @@ function meshAABB(mesh) {
 }
 
 function buildGrid(half) {
-  const size = half * 2 + 1;
+  const size = TERRAIN_SAMPLES;
+  const step = (half * 2) / (size - 1);
   const heights = new Array(size * size);
   for (let zi = 0; zi < size; zi++) {
     for (let xi = 0; xi < size; xi++) {
-      heights[zi * size + xi] = round3(groundHeight(-half + xi, -half + zi));
+      heights[zi * size + xi] = round3(groundHeight(-half + xi * step, -half + zi * step));
     }
   }
-  return { min: -half, step: 1, size, heights };
+  return { min: -half, step, size, heights };
 }
 
 function borderWalls(half) {

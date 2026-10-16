@@ -3,71 +3,95 @@ import { animationPose } from './animation';
 
 interface Rig {
   body: THREE.Group;
-  leftArm: THREE.Group; rightArm: THREE.Group;
-  leftLeg: THREE.Group; rightLeg: THREE.Group;
+  leftArm: THREE.Group;
+  rightArm: THREE.Group;
+  leftLeg: THREE.Group;
+  rightLeg: THREE.Group;
 }
+
 const rigs = new WeakMap<THREE.Group, Rig>();
 
-export function createAvatar(color = 0x4f8ef7): THREE.Group {
-  const group = new THREE.Group();
+export function createAvatar(overallsColor = 0x4f8ef7): THREE.Group {
+  const root = new THREE.Group();
+  root.name = 'default-avatar';
 
   const body = new THREE.Group();
   body.name = 'body';
-  group.add(body);
-  const tunic = new THREE.MeshStandardMaterial({ color, roughness: 1, flatShading: true });
-  const skin = new THREE.MeshStandardMaterial({ color: 0xe2b78e, roughness: 1, flatShading: true });
-  const leather = new THREE.MeshStandardMaterial({ color: 0x493b32, roughness: 1, flatShading: true });
-  const cream = new THREE.MeshStandardMaterial({ color: 0xf1e6bc, roughness: 1, flatShading: true });
-  const eyes = new THREE.MeshBasicMaterial({ color: 0x25342b });
+  root.add(body);
 
-  function mesh(parent: THREE.Object3D, geometry: THREE.BufferGeometry, material: THREE.Material, x: number, y: number, z: number) {
-    const part = new THREE.Mesh(geometry, material);
-    part.position.set(x, y, z);
-    part.castShadow = true;
-    part.receiveShadow = true;
-    parent.add(part);
-    return part;
+  const yellow = new THREE.MeshStandardMaterial({ color: 0xffd329, roughness: 0.86, flatShading: true });
+  const overalls = new THREE.MeshStandardMaterial({ color: overallsColor, roughness: 0.95, flatShading: true });
+  const black = new THREE.MeshStandardMaterial({ color: 0x24282a, roughness: 0.9, flatShading: true });
+  const goggle = new THREE.MeshStandardMaterial({ color: 0x68747a, metalness: 0.45, roughness: 0.42, flatShading: true });
+  const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xfffbef, roughness: 0.68, flatShading: true });
+  const iris = new THREE.MeshStandardMaterial({ color: 0x86532f, roughness: 0.75, flatShading: true });
+
+  function addMesh(
+    parent: THREE.Object3D,
+    geometry: THREE.BufferGeometry,
+    material: THREE.Material,
+    name: string,
+    position: [number, number, number],
+  ): THREE.Mesh {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.position.set(...position);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    parent.add(mesh);
+    return mesh;
   }
 
-  function oval(parent: THREE.Object3D, material: THREE.Material, x: number, y: number, z: number,
-    radiusX: number, radiusY: number, radiusZ: number) {
-    return mesh(parent, new THREE.SphereGeometry(1, 10, 6).scale(radiusX, radiusY, radiusZ), material, x, y, z);
+  // One simple, rounded yellow body with a single goggle and blue overalls.
+  addMesh(body, new THREE.CapsuleGeometry(0.31, 0.52, 4, 10), yellow, 'yellow-body', [0, 1.08, 0]);
+  addMesh(body, new THREE.CylinderGeometry(0.285, 0.31, 0.52, 10), overalls, 'overalls', [0, 0.81, 0]);
+  addMesh(body, new THREE.CapsuleGeometry(0.08, 0.025, 3, 8), overalls, 'overall-pocket', [0, 0.96, 0.294]);
+
+  for (const side of [-1, 1]) {
+    const strap = addMesh(body, new THREE.CapsuleGeometry(0.035, 0.19, 3, 7), overalls,
+      side < 0 ? 'left-strap' : 'right-strap', [side * 0.155, 1.18, 0.185]);
+    strap.rotation.z = side * -0.12;
   }
 
-  const torsoProfile = [
-    [0, 0.65], [0.24, 0.65], [0.265, 0.68], [0.235, 0.78],
-    [0.255, 1.05], [0.22, 1.14], [0.12, 1.19], [0, 1.19],
-  ].map(([radius, height]) => new THREE.Vector2(radius, height));
-  mesh(body, new THREE.LatheGeometry(torsoProfile, 12).scale(1, 1, 0.75), tunic, 0, 0, 0).name = 'tunic';
-  mesh(body, new THREE.CylinderGeometry(0.24, 0.25, 0.065, 12).scale(1, 1, 0.78), leather, 0, 0.785, 0);
-  oval(body, cream, 0, 0.785, 0.195, 0.055, 0.04, 0.018);
-  mesh(body, new THREE.CylinderGeometry(0.09, 0.10, 0.12, 10), skin, 0, 1.2, 0);
-  mesh(body, new THREE.SphereGeometry(0.255, 12, 8).scale(1, 0.98, 0.92), skin, 0, 1.42, 0).name = 'head';
-  for (const x of [-0.25, 0.25]) oval(body, skin, x, 1.4, 0, 0.045, 0.065, 0.045);
-  mesh(body, new THREE.SphereGeometry(1, 12, 4, 0, Math.PI * 2, 0, Math.PI / 2)
-    .scale(0.27, 0.14, 0.25), tunic, 0, 1.555, 0).name = 'cap';
-  oval(body, cream, 0, 1.56, 0.19, 0.22, 0.025, 0.14);
-  for (const x of [-0.085, 0.085]) oval(body, eyes, x, 1.44, 0.226, 0.02, 0.026, 0.014);
-  oval(body, skin, 0, 1.375, 0.237, 0.03, 0.035, 0.043);
-  mesh(body, new THREE.CapsuleGeometry(0.12, 0.12, 3, 8).scale(1, 1, 0.7), leather, 0, 0.96, -0.23);
+  const rim = addMesh(body, new THREE.TorusGeometry(0.148, 0.034, 6, 12), goggle, 'goggle-rim', [0, 1.43, 0.275]);
+  rim.scale.set(1, 1, 0.75);
+  addMesh(body, new THREE.SphereGeometry(0.128, 10, 6), eyeWhite, 'single-eye', [0, 1.43, 0.24]);
+  addMesh(body, new THREE.SphereGeometry(0.067, 8, 5), iris, 'iris', [0.014, 1.43, 0.32]);
+  addMesh(body, new THREE.SphereGeometry(0.034, 8, 5), black, 'pupil', [0.018, 1.43, 0.365]);
+  addMesh(body, new THREE.SphereGeometry(0.012, 6, 4), eyeWhite, 'eye-highlight', [-0.004, 1.456, 0.386]);
 
-  function limb(x: number, y: number, length: number, width: number, material: THREE.Material): THREE.Group {
+  function limb(
+    name: string,
+    x: number,
+    y: number,
+    length: number,
+    width: number,
+    material: THREE.Material,
+    foot?: boolean,
+  ): THREE.Group {
     const pivot = new THREE.Group();
+    pivot.name = name;
     pivot.position.set(x, y, 0);
-    mesh(pivot, new THREE.CapsuleGeometry(width / 2, length - width, 3, 8), material, 0, -length / 2, 0);
+    addMesh(pivot, new THREE.CapsuleGeometry(width / 2, length - width, 3, 8), material,
+      `${name}-segment`, [0, -length / 2, 0]);
+    if (foot) {
+    addMesh(pivot, new THREE.SphereGeometry(1, 8, 5).scale(0.105, 0.075, 0.15), black,
+        `${name}-boot`, [0, -0.495, 0.045]);
+    } else {
+      addMesh(pivot, new THREE.SphereGeometry(1, 8, 5).scale(0.075, 0.09, 0.07), black,
+        `${name}-glove`, [0, -0.385, 0.015]);
+    }
     body.add(pivot);
     return pivot;
   }
-  const leftArm = limb(-0.29, 1.12, 0.36, 0.16, tunic);
-  const rightArm = limb(0.29, 1.12, 0.36, 0.16, tunic);
-  for (const arm of [leftArm, rightArm]) oval(arm, skin, 0, -0.405, 0, 0.071, 0.088, 0.069);
-  const leftLeg = limb(-0.135, 0.67, 0.5, 0.17, leather);
-  const rightLeg = limb(0.135, 0.67, 0.5, 0.17, leather);
-  for (const leg of [leftLeg, rightLeg]) oval(leg, leather, 0, -0.58, 0.035, 0.105, 0.09, 0.15);
-  for (const [name, part] of Object.entries({ leftArm, rightArm, leftLeg, rightLeg })) part.name = name;
-  rigs.set(group, { body, leftArm, rightArm, leftLeg, rightLeg });
 
-  return group;
+  const leftArm = limb('leftArm', -0.285, 1.17, 0.39, 0.15, yellow);
+  const rightArm = limb('rightArm', 0.285, 1.17, 0.39, 0.15, yellow);
+  const leftLeg = limb('leftLeg', -0.135, 0.57, 0.5, 0.17, overalls, true);
+  const rightLeg = limb('rightLeg', 0.135, 0.57, 0.5, 0.17, overalls, true);
+
+  rigs.set(root, { body, leftArm, rightArm, leftLeg, rightLeg });
+  return root;
 }
 
 export function animateAvatar(root: THREE.Group, time: number, speed: number, onGround: boolean, dt: number): void {

@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { buildMeadow, groundHeight, pathDistance, bridgePoint } from './scene.mjs';
+import { buildMeadow, groundHeight, pathDistance, bridgePoint, SPEC } from './scene.mjs';
+import { TERRAIN_SAMPLES, TERRAIN_SEGMENTS } from './terrain.mjs';
 import { encodeGLB, decodeGLB } from './glb.mjs';
 import { validateMeadow } from './validate.mjs';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -17,16 +18,36 @@ test('saved standalone GLB meets geometric and technical constraints', async () 
   const buffer = await readFile(new URL('../../public/models/fantasy-meadow.glb', import.meta.url));
   const report = validateMeadow(buffer);
   assert.ok(report.triangles < 60000);
-  assert.equal(report.playableMeters, '80 x 80');
+  assert.equal(report.playableMeters, '160 x 160');
   assert.equal(report.emptyCenterRadiusMeters, 10);
   assert.equal(report.riverWidthMeters, 4);
   assert.equal(report.bridgeDeckMeters, 1);
   assert.equal(report.maxStepRiseMeters, 0.3);
 });
 
+test('terrain uses the 128-segment browser budget at expanded world size', () => {
+  assert.equal(TERRAIN_SEGMENTS, 128);
+  assert.equal(TERRAIN_SAMPLES ** 2, 16641);
+  const scene = buildMeadow();
+  try {
+    const terrain = scene.meshes.find((mesh) => mesh.extras.role === 'terrain');
+    assert.ok(terrain);
+    assert.equal(terrain.geometry.getAttribute('position').count / 3, 32768);
+  } finally {
+    for (const mesh of scene.meshes) mesh.geometry.dispose();
+  }
+});
+
+test('terrain has visible rolling relief while preserving the spawn plaza', () => {
+  assert.equal(groundHeight(0, 8), 0);
+  const hillHeights = [[-52, 31], [58, -75], [-62, 68]].map(([x, z]) => groundHeight(x, z));
+  assert.ok(Math.max(...hillHeights) > 2.5, `Expected visible hills, got ${hillHeights}`);
+  assert.ok(Math.max(...hillHeights) - groundHeight(0, 8) > 2.5);
+});
+
 test('paths reach the expanded edges and the relocated bridge', () => {
-  for (const [x, z] of [[-40, 7], [5, -40], [38, 40], [40, -5], [30, 30]]) {
-    assert.ok(pathDistance(x, z) < 0.001, `Missing path at ${x}, ${z}`);
+  for (const [x, z] of [[-80, 7], [5, -80], [68, 68], [80, -5], [30, 30]]) {
+    assert.ok(pathDistance(x, z) < 0.01, `Missing path at ${x}, ${z}`);
   }
 });
 
@@ -105,30 +126,46 @@ async function loadManifest() {
   return JSON.parse(raw);
 }
 
-test('collision manifest: grid has 6561 samples, flat spawn center, bounded heights', async () => {
+test('collision manifest: grid matches terrain samples, spawn is flat, and heights stay bounded', async () => {
   const manifest = await loadManifest();
-  assert.equal(manifest.grid.heights.length, 6561);
+  assert.equal(manifest.grid.heights.length, TERRAIN_SAMPLES ** 2);
   const { min, step, size, heights } = manifest.grid;
+  assert.equal(size, TERRAIN_SAMPLES);
+  assert.ok(Math.abs(step - (SPEC.playableHalf * 2) / TERRAIN_SEGMENTS) < 1e-9);
   const centerIndex = ((0 - min) / step) * size + (0 - min) / step;
-  assert.equal(heights[centerIndex], 0);
-  for (const h of heights) assert.ok(Math.abs(h) <= 1, `height out of range: ${h}`);
+  assert.equal(Math.abs(heights[centerIndex]), 0);
+  for (const h of heights) assert.ok(Math.abs(h) <= 3, `height out of range: ${h}`);
 });
 
-test('collision manifest: boxes stay within +/-41 and border walls exist on all four sides', async () => {
+test('terrain stays within the 12-degree traversal slope target', () => {
+  const step = 0.25;
+  let maximumSlope = 0;
+  for (let z = -SPEC.playableHalf; z < SPEC.playableHalf; z += step) {
+    for (let x = -SPEC.playableHalf; x < SPEC.playableHalf; x += step) {
+      const height = groundHeight(x, z);
+      const dx = (groundHeight(x + step, z) - height) / step;
+      const dz = (groundHeight(x, z + step) - height) / step;
+      maximumSlope = Math.max(maximumSlope, Math.atan(Math.hypot(dx, dz)) * 180 / Math.PI);
+    }
+  }
+  assert.ok(maximumSlope <= 12, `terrain slope exceeds 12 degrees: ${maximumSlope}`);
+});
+
+test('collision manifest: boxes stay inside the expanded edge walls', async () => {
   const manifest = await loadManifest();
-  const LIMIT = 41 + 1e-6;
+  const LIMIT = 81 + 1e-6;
   for (const b of manifest.boxes) {
-    assert.ok(Math.abs(b.minX) <= LIMIT && Math.abs(b.maxX) <= LIMIT, `box exceeds +/-41 in X: ${JSON.stringify(b)}`);
-    assert.ok(Math.abs(b.minZ) <= LIMIT && Math.abs(b.maxZ) <= LIMIT, `box exceeds +/-41 in Z: ${JSON.stringify(b)}`);
+    assert.ok(Math.abs(b.minX) <= LIMIT && Math.abs(b.maxX) <= LIMIT, `box exceeds +/-81 in X: ${JSON.stringify(b)}`);
+    assert.ok(Math.abs(b.minZ) <= LIMIT && Math.abs(b.maxZ) <= LIMIT, `box exceeds +/-81 in Z: ${JSON.stringify(b)}`);
   }
   const isWallOnAxis = (b, axis) => Math.abs((b[`max${axis}`] - b[`min${axis}`]) - 1) < 1e-6
     && Math.abs(b.maxY - b.minY - 3) < 1e-6;
   const findWall = (axis, center) => manifest.boxes.find((b) => isWallOnAxis(b, axis)
     && Math.abs((b[`min${axis}`] + b[`max${axis}`]) / 2 - center) < 1e-6);
-  const north = findWall('Z', 40);
-  const south = findWall('Z', -40);
-  const east = findWall('X', 40);
-  const west = findWall('X', -40);
+  const north = findWall('Z', 80);
+  const south = findWall('Z', -80);
+  const east = findWall('X', 80);
+  const west = findWall('X', -80);
   for (const wall of [north, south, east, west]) {
     assert.ok(wall, 'missing border wall');
     assert.equal(wall.minY, 0);
@@ -222,4 +259,17 @@ test('collision manifest: spawn clearing at (0,8) r=1 is free of boxes and flat'
     assert.ok(dx * dx + dz * dz >= radius * radius, `box overlaps spawn circle: ${JSON.stringify(b)}`);
   }
   assert.equal(groundHeight(cx, cz), 0);
+});
+
+test('collision manifest: all ten plaza spawn pads are flat and clear', async () => {
+  const manifest = await loadManifest();
+  assert.equal(SPEC.spawnPoints.length, 10);
+  for (const [cx, cz] of SPEC.spawnPoints) {
+    for (const b of manifest.boxes) {
+      const nx = Math.max(b.minX, Math.min(cx, b.maxX));
+      const nz = Math.max(b.minZ, Math.min(cz, b.maxZ));
+      assert.ok((cx - nx) ** 2 + (cz - nz) ** 2 >= 1, `box overlaps spawn pad: ${JSON.stringify(b)}`);
+    }
+    assert.equal(groundHeight(cx, cz), 0);
+  }
 });

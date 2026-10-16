@@ -15,7 +15,7 @@ describe('OrbitCamera', () => {
 
   it('forward and right are unit length and perpendicular', () => {
     const cam = new OrbitCamera();
-    cam.applyDrag(123, 45);
+    cam.applyLook(123, 45);
     const f = cam.forward();
     const r = cam.right();
     expect(Math.hypot(f.x, f.z)).toBeCloseTo(1, 5);

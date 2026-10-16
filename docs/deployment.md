@@ -2,11 +2,10 @@
 
 ## Current features
 
-- An 80 x 80 m meadow with terrain collision, climbable bridge/ruins, and river wading.
-- Six explorer color choices, procedural low-poly rigs, blended idle/walk/run/jump
-  poses, a styled join screen/HUD, sky/clouds, and distant scenery.
-  Explorers use rounded, faceted heads, tapered tunics, capsule limbs, and
-  rounded hands/boots while keeping the same standing collision dimensions.
+- A 160 x 160 m rolling meadow with village, park pond, activity meadow, stable,
+  forest, countryside, terrain collision, climbable bridge/ruins, and river wading.
+- One Minion-style default avatar in six outfit colors, animated with a
+  lightweight built-in walk, run, and jump gait. No character model downloads.
 - Proximity text chat with chat bubbles, message length/rate limits, and a
   player roster with block/unblock. Blocking also removes existing messages
   and bubbles from that player.
@@ -44,7 +43,7 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173`, pick a nickname/color, and enter the world.
+Open `http://localhost:5173`, pick a nickname, character, and color, and enter the world.
 Press **Enter** to open text chat, **Enter** to send, or **Escape** to cancel.
 Use the Voice panel to explicitly enable microphone access. Use the player
 roster to block messages or mute an individual's incoming voice.
@@ -118,7 +117,8 @@ Server integration tests use port 2568 by default. If occupied, run
 
 ### Two-browser checklist
 
-1. Join with different nicknames/colors; verify both rosters and movement.
+1. Join with different nicknames, characters, and colors; verify both rosters
+   and movement.
 2. Walk, run, jump, climb the bridge/ruin, and wade the river. Verify local
    and remote animations and camera controls.
 3. Verify near players exchange text messages/bubbles, while far players do

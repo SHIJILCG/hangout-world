@@ -1,7 +1,7 @@
 import { Room, ServerError, type Client } from 'colyseus';
 import { WorldState, PlayerState } from './schema';
 import { sanitizeName, clampColorIndex, validateMove, sanitizeChat } from './validation';
-import { SPAWN, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP, CHAT_BURST, CHAT_REFILL_MS, PROXIMITY } from './constants';
+import { SPAWN, SPAWN_POINTS, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP, CHAT_BURST, CHAT_REFILL_MS, PROXIMITY } from './constants';
 import { nearbyPlayerIds } from './proximity';
 import { iceServersFromEnv } from './voiceConfig';
 
@@ -21,6 +21,7 @@ export class WorldRoom extends Room<WorldState> {
   private voiceReady = new Set<string>();
   private voiceLinks = new Set<string>();
   private proximityCapable = new Set<string>();
+  private spawnAssignments = new Map<string, number>();
 
   onCreate(): void {
     if (WorldRoom.active) throw new ServerError(4210, 'The world is full. Please retry shortly.');
@@ -116,9 +117,10 @@ export class WorldRoom extends Room<WorldState> {
     const p = new PlayerState();
     p.name = sanitizeName(options?.name);
     p.colorIndex = clampColorIndex(options?.colorIndex);
-    p.x = SPAWN.x;
-    p.y = SPAWN.y;
-    p.z = SPAWN.z;
+    const spawn = this.allocateSpawn(client.sessionId);
+    p.x = spawn.x;
+    p.y = spawn.y;
+    p.z = spawn.z;
     this.state.players.set(client.sessionId, p);
     this.moveBudget.set(client.sessionId, { budget: MOVE_BUDGET_CAP, lastAt: Date.now() });
     this.chatBudget.set(client.sessionId, { tokens: CHAT_BURST, lastAt: Date.now() });
@@ -142,6 +144,19 @@ export class WorldRoom extends Room<WorldState> {
     this.moveBudget.delete(client.sessionId);
     this.chatBudget.delete(client.sessionId);
     this.proximityCapable.delete(client.sessionId);
+    this.spawnAssignments.delete(client.sessionId);
+  }
+
+  private allocateSpawn(sessionId: string): (typeof SPAWN_POINTS)[number] {
+    const counts = SPAWN_POINTS.map(() => 0);
+    for (const index of this.spawnAssignments.values()) counts[index] += 1;
+    let index = counts.findIndex((count) => count === 0);
+    if (index < 0) {
+      const minimum = Math.min(...counts);
+      index = counts.findIndex((count) => count === minimum);
+    }
+    this.spawnAssignments.set(sessionId, index);
+    return SPAWN_POINTS[index] ?? SPAWN;
   }
 
   /** Reusable server-owned proximity relationship used by voice/signaling. */

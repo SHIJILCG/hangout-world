@@ -22,6 +22,15 @@ import { createVoiceControl, type VoiceControl } from './ui/voiceControl';
 import { PROXIMITY } from './net/proximity';
 
 const SEND_EVERY_N_STEPS = 4; // 60 Hz / 4 = 15 Hz
+const TURN_RESPONSE = 12;
+
+function angleDelta(from: number, to: number): number {
+  return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+}
+
+function turnToward(from: number, to: number, dt: number): number {
+  return from + angleDelta(from, to) * (1 - Math.exp(-TURN_RESPONSE * dt));
+}
 
 showJoinScreen(async (name, colorIndex) => {
   const room = await joinWorld(name, colorIndex);
@@ -37,9 +46,6 @@ showJoinScreen(async (name, colorIndex) => {
 
 async function start(room: GameRoom, name: string, colorIndex: number): Promise<void> {
   // --- World ---
-  // Load the world BEFORE creating any renderer/canvas/listeners: a failed
-  // load (e.g. a dropped 4.4 MB GLB fetch) must throw here, before any
-  // WebGL context exists, so a retry never leaks a context or DOM listener.
   const map = await buildMap();
 
   // --- Renderer / scene ---
@@ -59,7 +65,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
   scene.add(createAtmosphere());
   const hud = document.createElement('aside');
   hud.id = 'world-hud';
-  hud.innerHTML = '<strong>Meadow Valley</strong><small>WASD move / Shift run / Space jump</small><small>Drag to look / Scroll to zoom / Enter to chat</small>';
+  hud.innerHTML = '<strong>Meadow Valley</strong><small>WASD move / Shift run / Space jump</small><small>Click world to look / Escape to release / Scroll to zoom</small><small>Enter to chat</small>';
   document.body.append(hud);
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
@@ -82,6 +88,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
   const input = new KeyboardInput();
   const orbit = new OrbitCamera();
   let player = createPlayerState(SPAWN.x, SPAWN.y, SPAWN.z);
+  let avatarHeading = player.heading;
   let connected = true;
   const lifetime = new AbortController();
 
@@ -133,14 +140,15 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
     if (connected) void room.leave();
   }, { once: true });
 
-  function bindRoom(channel: GameRoom, recovering = false): void {
+  function bindRoom(channel: GameRoom): void {
     const $ = getStateCallbacks(channel);
     $(channel.state).players.onAdd((p, sessionId) => {
       roster.add(sessionId, p.name);
       if (sessionId === channel.sessionId) {
-        if (recovering) {
-          player = { ...createPlayerState(p.x, p.y, p.z), heading: p.heading };
-        }
+        // The server allocates one of the deterministic plaza pads on every
+        // new join; reconnects also restore the authoritative pose.
+        player = { ...createPlayerState(p.x, p.y, p.z), heading: p.heading };
+        avatarHeading = p.heading;
         if (p.name !== name) {
           avatar.remove(myTag);
           myTag.material.map?.dispose();
@@ -207,7 +215,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
       room = restored;
       remotes.clear();
       roster.clear();
-      bindRoom(room, true);
+      bindRoom(room);
       connected = true;
       if (voice.isEnabled) room.send('voice-ready', { enabled: true });
       input.clear();
@@ -227,15 +235,26 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
     }
   });
 
-  // --- Mouse: drag to orbit, wheel to zoom ---
-  let dragging = false;
-  renderer.domElement.addEventListener('mousedown', () => { dragging = true; });
-  window.addEventListener('mouseup', () => { dragging = false; });
-  window.addEventListener('mousemove', (e) => {
-    if (dragging) orbit.applyDrag(e.movementX, e.movementY);
+  // Click the world once to capture the pointer; Escape releases it. UI
+  // controls never capture the pointer because they are not the canvas.
+  let pointerLockFallback = false;
+  renderer.domElement.addEventListener('click', () => {
+    const request = renderer.domElement.requestPointerLock();
+    if (request && typeof request.catch === 'function') {
+      void request.catch(() => {
+        pointerLockFallback = true;
+        console.info('Pointer lock was not granted; using canvas mouse-look fallback.');
+      });
+    }
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (document.pointerLockElement === renderer.domElement
+      || (pointerLockFallback && e.target === renderer.domElement)) {
+      orbit.applyLook(e.movementX, e.movementY);
+    }
   });
   renderer.domElement.addEventListener('wheel', (e) => orbit.applyZoom(e.deltaY), { passive: true });
-  window.addEventListener('blur', () => { input.clear(); dragging = false; });
+  window.addEventListener('blur', () => { input.clear(); });
   document.addEventListener('focusin', (event) => {
     if (event.target instanceof HTMLElement && event.target.closest('button, input, details')) input.clear();
   });
@@ -263,8 +282,15 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
         run: k.run,
         jump: k.jump,
       };
+      const previousX = player.x;
+      const previousZ = player.z;
       if (connected) player = updatePlayer(player, move, STEP, map.collision);
-      animateAvatar(avatar, stepCount * STEP, Math.hypot(move.dirX, move.dirZ) > 0 ? (move.run ? 8 : 4) : 0, player.onGround, STEP);
+      const actualSpeed = Math.hypot(player.x - previousX, player.z - previousZ) / STEP;
+      if (actualSpeed > 0.01) {
+        const movementHeading = Math.atan2(player.x - previousX, player.z - previousZ);
+        avatarHeading = turnToward(avatarHeading, movementHeading, STEP);
+      }
+      animateAvatar(avatar, stepCount * STEP, actualSpeed, player.onGround, STEP);
       remotes.tick(STEP);
 
       stepCount++;
@@ -275,7 +301,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
     }
 
     avatar.position.set(player.x, player.y, player.z);
-    avatar.rotation.y = player.heading;
+    avatar.rotation.y = avatarHeading;
     voice.tick();
 
     const off = orbit.offset();

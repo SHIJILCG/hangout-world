@@ -30,7 +30,7 @@ export function validateMeadow(buffer) {
   assert.equal(json.buffers[0].byteLength, binary.length);
   assert.ok(!json.buffers[0].uri, 'GLB must be self-contained');
   assert.equal(json.scenes.length, 1);
-  assert.equal(json.scenes[0].extras.playableHalf, 40);
+  assert.equal(json.scenes[0].extras.playableHalf, 80);
   assert.equal(json.scenes[0].extras.bridgeCenter, 30);
   assert.equal(json.materials.length, 1);
   assert.equal(json.materials[0].alphaMode, 'OPAQUE');
@@ -70,8 +70,8 @@ export function validateMeadow(buffer) {
       }
       near(Math.hypot(...normals.slice(i, i + 3)), 1, `Unit normal in ${node.name}`);
       if (node.extras.role !== 'backdrop') {
-        assert.ok(Math.abs(positions[i]) <= 40 + EPS && Math.abs(positions[i + 2]) <= 40 + EPS,
-          `Playable mesh outside 80m square: ${node.name}`);
+        assert.ok(Math.abs(positions[i]) <= 80 + EPS && Math.abs(positions[i + 2]) <= 80 + EPS,
+        `Playable mesh outside 160m square: ${node.name}`);
       } else {
         assert.equal(node.extras.visualOnly, true);
         assert.ok(Math.hypot(positions[i], positions[i + 2]) <= 200 + EPS, `Backdrop beyond 200m: ${node.name}`);
@@ -91,9 +91,11 @@ export function validateMeadow(buffer) {
             'Central circle must be green meadow, without dirt paths');
         }
       }
-      for (let axis = 0; axis < 3; axis++) {
-        near(normals[i + axis], normals[i + 3 + axis], 'Flat face normal');
-        near(normals[i + axis], normals[i + 6 + axis], 'Flat face normal');
+      if (node.extras.role !== 'terrain') {
+        for (let axis = 0; axis < 3; axis++) {
+          near(normals[i + axis], normals[i + 3 + axis], 'Flat face normal');
+          near(normals[i + axis], normals[i + 6 + axis], 'Flat face normal');
+        }
       }
     }
     const accessor = json.accessors[primitive.attributes.POSITION];
@@ -105,7 +107,7 @@ export function validateMeadow(buffer) {
   assert.ok(backdropTriangles < 2000, `Backdrop must remain low detail: ${backdropTriangles}`);
   const terrain = nodes.find((n) => n.extras.role === 'terrain');
   assert.ok(terrain);
-  for (const axis of [0, 2]) { near(terrain.min[axis], -40, 'Ground min'); near(terrain.max[axis], 40, 'Ground max'); }
+  for (const axis of [0, 2]) { near(terrain.min[axis], -80, 'Ground min'); near(terrain.max[axis], 80, 'Ground max'); }
   const river = nodes.find((n) => n.extras.role === 'river');
   assert.ok(river);
   const riverV = [];
@@ -115,8 +117,8 @@ export function validateMeadow(buffer) {
   }
   near(Math.max(...riverV) - Math.min(...riverV), 4, 'River width');
   near((Math.max(...riverV) + Math.min(...riverV)) / 2, 0, 'River stays in the expanded corner');
-  near(river.max[0], 40, 'River reaches east boundary');
-  near(river.max[2], 40, 'River reaches south boundary');
+  near(river.max[0], 80, 'River reaches east boundary');
+  near(river.max[2], 80, 'River reaches south boundary');
   const deck = nodes.find((n) => n.extras.role === 'bridge-deck');
   const crown = nodes.find((n) => n.extras.role === 'ruin-crown');
   assert.ok(deck && crown);
@@ -166,12 +168,12 @@ export function validateMeadow(buffer) {
   route('bridge-1', 4, 0.25, deck);
   route('ruin', 12, 0.3, crown);
   const treeCount = nodes.filter((n) => n.extras.role === 'tree-trunk').length;
-  assert.ok(treeCount >= 8 && treeCount <= 10);
+  assert.ok(treeCount >= 20 && treeCount <= 30);
   for (const kind of ['white', 'yellow']) assert.ok(nodes.some((n) => n.extras.role === 'flowers' && n.extras.kind === kind));
   for (const role of ['fence', 'rock', 'ruin', 'bridge-structure']) assert.ok(nodes.some((n) => n.extras.role === role));
   return {
     triangles, backdropTriangles, meshes: nodes.length, bytes: buffer.length,
-    trees: treeCount, playableMeters: '80 x 80', emptyCenterRadiusMeters: 10,
+    trees: treeCount, playableMeters: '160 x 160', emptyCenterRadiusMeters: 10,
     riverWidthMeters: 4, bridgeDeckMeters: 1, maxStepRiseMeters: 0.3,
     materials: 1, textures: 0, animations: 0, embeddedLights: 0, transparency: false,
   };

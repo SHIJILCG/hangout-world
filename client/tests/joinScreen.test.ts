@@ -34,10 +34,11 @@ describe('showJoinScreen', () => {
       expect(el<HTMLButtonElement>('#join-btn').disabled).toBe(false);
     } finally { vi.useRealTimers(); }
   });
-  it('renders name input, 6 swatches, and a join button', () => {
+  it('renders one default avatar with 6 outfit colors and a join button', () => {
     showJoinScreen(async () => {});
     expect(el('#join-screen')).toBeTruthy();
     expect(el('#join-name')).toBeTruthy();
+    expect(document.querySelectorAll('.join-character').length).toBe(0);
     expect(document.querySelectorAll('.join-swatch').length).toBe(6);
     expect(el('#join-btn')).toBeTruthy();
   });
@@ -50,7 +51,7 @@ describe('showJoinScreen', () => {
     expect(swatches[0].classList.contains('selected')).toBe(false);
   });
 
-  it('calls onJoin with trimmed name and selected color, then removes the overlay', async () => {
+  it('calls onJoin with the selected color and trimmed name', async () => {
     const onJoin = vi.fn().mockResolvedValue(undefined);
     showJoinScreen(onJoin);
     el<HTMLInputElement>('#join-name').value = '  Alice ';
