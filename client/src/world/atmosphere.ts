@@ -22,15 +22,19 @@ export function createAtmosphere(): THREE.Group {
 
   const cloudMaterial = new THREE.MeshBasicMaterial({ color: 0xfff6e5 });
   const cloudGeometry = new THREE.IcosahedronGeometry(1, 1);
+  const clouds = new THREE.InstancedMesh(cloudGeometry, cloudMaterial, 36);
+  const cloud = new THREE.Object3D();
   for (let i = 0; i < 12; i++) {
     const angle = i * Math.PI * 2 / 12;
     for (let j = 0; j < 3; j++) {
-      const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
       cloud.position.set(Math.cos(angle) * 190 + j * 6, 45 + (i % 3) * 9, Math.sin(angle) * 190);
       cloud.scale.set(10, 3 + j, 5);
-      group.add(cloud);
+      cloud.updateMatrix();
+      clouds.setMatrixAt(i*3+j,cloud.matrix);
     }
   }
+  clouds.instanceMatrix.needsUpdate = true;
+  group.add(clouds);
 
   // Visual-only valley floor hides the gap between the playable tile and backdrop.
   const outer = new THREE.Shape();

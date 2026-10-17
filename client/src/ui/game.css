@@ -7,6 +7,11 @@ button:not(:disabled):hover { filter: brightness(1.14); }
   border: 1px solid #617b67; border-radius: 14px; pointer-events: none; z-index: 4; }
 #world-hud strong { display: block; font-size: 18px; letter-spacing: 0.4px; }
 #world-hud small { display: block; color: #d5debd; margin-top: 6px; font-size: 12px; }
+#world-hud details { pointer-events: auto; margin-top: 8px; max-width: 360px; }
+#world-hud details summary { cursor: pointer; }
+#world-hud details label { display: block; margin-top: 8px; }
+#world-hud details select { background: #385748; color: #fff5da; border: 1px solid #698474; border-radius: 5px; padding: 4px; }
+#world-hud [hidden] { display: none; }
 #game-notice { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); background: #753c30;
   border-radius: 10px; padding: 12px 18px; z-index: 12; max-width: 450px; }
 #roster { position: fixed; right: 20px; top: 20px; background: #203d35ed; padding: 14px;

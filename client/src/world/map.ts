@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CollisionWorld, type Box, type HeightGrid } from './collision';
-import { addEnvironmentAssets } from './environmentAssets';
+import { StreamedMap, disposeGeometry } from './streaming';
+import { addEnvironmentAssets, updateEnvironment } from './environmentAssets';
 import manifestJson from './meadow-collision.json';
 
 export const WORLD_HALF = 120; // must match server (240 x 240m)
@@ -24,6 +24,10 @@ export const SPAWN = SPAWN_POINTS[0];
 export interface WorldMap {
   group: THREE.Group;
   collision: CollisionWorld;
+  update(x: number, y: number, z: number, now: number, quality: number): void;
+  dispose(): void;
+  streaming: StreamedMap;
+  sun: THREE.DirectionalLight;
 }
 
 interface CollisionManifest {
@@ -34,7 +38,6 @@ interface CollisionManifest {
 
 const manifest = manifestJson as CollisionManifest;
 
-const MODEL_URL = '/models/fantasy-meadow.glb';
 
 // Sync, JSON-only — used by tests (headless, no GLB/rendering) and by buildMap.
 export function buildCollision(): CollisionWorld {
@@ -45,47 +48,47 @@ export async function buildMap(): Promise<WorldMap> {
   const group = new THREE.Group();
   const collision = buildCollision();
 
-  const gltf = await new GLTFLoader().loadAsync(MODEL_URL);
-  group.add(gltf.scene);
-
-  gltf.scene.traverse((obj) => {
-    if (!(obj instanceof THREE.Mesh)) return;
-    const role = obj.userData.role;
-    const displayName = obj.name.replaceAll('_', ' ');
-    const replacedHousePart = displayName.endsWith(' walls')
-      || displayName.endsWith(' roof')
-      || (displayName.startsWith('Village ') && displayName.endsWith(' door'));
-    if (replacedHousePart) {
-      obj.visible = false;
-      return;
-    }
-    const generatedBridge = typeof role === 'string' && role.startsWith('bridge-');
-    // The wooden bridge replaces the generated deck and rails, but its
-    // generated stone steps are the visible transition down to the terrain.
-    // Keep the meadow's native trees and wildflowers alongside the denser
-    // decorative asset plantings.
-    if (generatedBridge && role !== 'bridge-step') {
-      obj.visible = false;
-      return;
-    }
-    obj.receiveShadow = true;
-    obj.castShadow = !obj.name.startsWith('Backdrop');
-  });
-  await addEnvironmentAssets(group, collision);
+  const streaming = new StreamedMap();
+  const environment = new THREE.Group();
+  group.add(streaming.group, environment);
+  try {
+    const results = await Promise.allSettled([streaming.initialize(), addEnvironmentAssets(environment, collision)]);
+    const failed = results.find(result => result.status === 'rejected');
+    if (failed?.status === 'rejected') throw failed.reason;
+  } catch (error) {
+    streaming.dispose(); disposeGeometry(environment); throw error;
+  }
 
   // --- Lighting ---
   group.add(new THREE.HemisphereLight(0xe7f5ff, 0x789158, 1.6));
   const sun = new THREE.DirectionalLight(0xfff0d5, 2);
   sun.position.set(-32, 60, 25);
   sun.castShadow = true;
-  sun.shadow.camera.left = -125;
-  sun.shadow.camera.right = 125;
-  sun.shadow.camera.top = 125;
-  sun.shadow.camera.bottom = -125;
+  sun.shadow.camera.left = -48;
+  sun.shadow.camera.right = 48;
+  sun.shadow.camera.top = 48;
+  sun.shadow.camera.bottom = -48;
   sun.shadow.camera.far = 320;
   sun.shadow.normalBias = 0.06;
   sun.shadow.mapSize.set(2048, 2048);
-  group.add(sun);
+  group.add(sun, sun.target);
 
-  return { group, collision };
+  let nextEnvironmentUpdate = 0;
+  return {
+    group, collision, streaming, sun,
+    update(x,_y,z,now,quality) {
+      streaming.update(x,z,now,[60,90,120][quality]);
+      // Quantize the shadow focus to avoid moving it on every tiny player step.
+      const step=96/sun.shadow.mapSize.x;
+      const sx=Math.round(x/step)*step, sz=Math.round(z/step)*step;
+      const y=collision.groundAt(sx,sz);
+      sun.position.set(sx-32,y+60,sz+25);
+      sun.target.position.set(sx,y,sz);
+      if (now>=nextEnvironmentUpdate) {
+        nextEnvironmentUpdate=now+150;
+        updateEnvironment(environment,x,z,[0.65,0.85,1][quality]);
+      }
+    },
+    dispose() { streaming.dispose(); disposeGeometry(environment); sun.shadow.dispose(); },
+  };
 }

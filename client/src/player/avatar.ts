@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { PLAYER_HEIGHT } from './controller';
 import { createJumpClips } from './medieval-jump-poses.js';
 
@@ -15,6 +16,16 @@ interface AvatarAnimation {
 }
 
 const animations = new WeakMap<THREE.Group, AvatarAnimation>();
+const templates = new Map<string, Promise<GLTF>>();
+
+function loadTemplate(path: string): Promise<GLTF> {
+  let template=templates.get(path);
+  if (!template) {
+    template=new GLTFLoader().loadAsync(path).catch(error=> { templates.delete(path); throw error; });
+    templates.set(path,template);
+  }
+  return template;
+}
 const CHARACTER_MODELS = [
   'Adventurer_Male.glb', 'Adventurer_Female.glb', 'Farmer.glb',
   'King.glb', 'Hooded_Adventurer.glb', 'Villager_Woman.glb', 'Witch.glb',
@@ -37,11 +48,14 @@ export async function loadAvatar(root: THREE.Group, characterIndex = 0): Promise
 
   const modelPath = avatarModelPath(characterIndex);
   const modelFile = modelPath.split('/').pop()!;
-  const loading = new GLTFLoader().loadAsync(modelPath).then((gltf) => {
-    const model = gltf.scene;
+  const loading = loadTemplate(modelPath).then((gltf) => {
+    if (root.userData.avatarDisposed) return;
+    // Independent skeletons/mixers; immutable mesh resources stay in the template cache.
+    const model = clone(gltf.scene);
     model.name = modelFile.replace('.glb', '');
     model.traverse((object) => {
       if (object instanceof THREE.Mesh) {
+        object.userData.sharedAvatar = true;
         object.castShadow = true;
         object.receiveShadow = true;
         if (object instanceof THREE.SkinnedMesh) object.frustumCulled = false;
@@ -69,12 +83,6 @@ export async function loadAvatar(root: THREE.Group, characterIndex = 0): Promise
     const bounds = new THREE.Box3().setFromObject(model);
     if (bounds.isEmpty() || bounds.max.y <= bounds.min.y) {
       throw new Error('The medieval character model has no measurable geometry.');
-    }
-    if (root.userData.avatarDisposed) {
-      model.traverse((object) => {
-        if (object instanceof THREE.Mesh) object.geometry.dispose();
-      });
-      return;
     }
     const scale = PLAYER_HEIGHT / (bounds.max.y - bounds.min.y);
     model.scale.multiplyScalar(scale);
@@ -140,6 +148,8 @@ export function disposeAvatar(root: THREE.Group): void {
     animations.delete(root);
   }
   root.traverse((object) => {
+    if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose();
+    if (object.userData.sharedAvatar) return;
     if (object instanceof THREE.Mesh) object.geometry.dispose();
     if (object instanceof THREE.Mesh || object instanceof THREE.Sprite) {
       for (const material of Array.isArray(object.material) ? object.material : [object.material]) {

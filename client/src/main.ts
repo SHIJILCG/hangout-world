@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { getStateCallbacks } from 'colyseus.js';
 import { KeyboardInput } from './input/keyboard';
 import { createPlayerState, updatePlayer, PLAYER_HEIGHT, type MoveInput } from './player/controller';
-import { animateAvatar, createAvatar, loadAvatar } from './player/avatar';
+import { animateAvatar, createAvatar, disposeAvatar, loadAvatar } from './player/avatar';
 import { createNameTag } from './player/nametag';
 import { OrbitCamera } from './camera/orbit';
 import { buildMap, SPAWN } from './world/map';
@@ -20,6 +20,7 @@ import { createConnectionOverlay } from './ui/connectionOverlay';
 import { ProximityVoice, type IceServerConfig } from './net/proximityVoice';
 import { createVoiceControl, type VoiceControl } from './ui/voiceControl';
 import { PROXIMITY } from './net/proximity';
+import { createGraphics } from './ui/graphics';
 
 const SEND_EVERY_N_STEPS = 4; // 60 Hz / 4 = 15 Hz
 const TURN_RESPONSE = 12;
@@ -46,7 +47,14 @@ showJoinScreen(async (name, colorIndex) => {
 
 async function start(room: GameRoom, name: string, colorIndex: number): Promise<void> {
   // --- World ---
-  const map = await buildMap();
+  const avatar = createAvatar(AVATAR_COLORS[colorIndex] ?? AVATAR_COLORS[0]);
+  const [mapResult, avatarResult] = await Promise.allSettled([buildMap(), loadAvatar(avatar, colorIndex)]);
+  if (mapResult.status === 'rejected' || avatarResult.status === 'rejected') {
+    if (mapResult.status === 'fulfilled') mapResult.value.dispose();
+    disposeAvatar(avatar);
+    throw mapResult.status === 'rejected' ? mapResult.reason : (avatarResult as PromiseRejectedResult).reason;
+  }
+  const map = mapResult.value;
 
   // --- Renderer / scene ---
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -67,19 +75,18 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
   hud.id = 'world-hud';
   hud.innerHTML = '<strong>Meadow Valley</strong><small>WASD move / Shift run / Space jump</small><small>Click world to look / Escape to release / Scroll to zoom</small><small>Enter to chat</small>';
   document.body.append(hud);
+  const graphics = createGraphics(renderer, map, hud);
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 550);
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    graphics.resize();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
   // --- Local player ---
-  const avatar = createAvatar(AVATAR_COLORS[colorIndex] ?? AVATAR_COLORS[0]);
-  await loadAvatar(avatar, colorIndex);
   let myTag = createNameTag(name);
   myTag.position.set(0, PLAYER_HEIGHT + 0.45, 0);
   avatar.add(myTag);
@@ -138,6 +145,11 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
     roster.dispose();
     input.dispose();
     renderer.setAnimationLoop(null);
+    graphics.dispose();
+    remotes.clear();
+    disposeAvatar(avatar);
+    map.dispose();
+    renderer.dispose();
     if (connected) void room.leave();
   }, { once: true });
 
@@ -229,6 +241,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
 
   // Enter opens chat when the game has focus (never while already typing).
   window.addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLElement && e.target.closest('select, button, summary')) return;
     if (connected && e.key === 'Enter' && !chat.isOpen) {
       e.preventDefault();
       chat.open();
@@ -268,11 +281,15 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
 
   renderer.setAnimationLoop(() => {
     const now = performance.now();
-    accumulator += Math.min((now - last) / 1000, 0.25);
+    const frameMs = now - last;
+    // Bound catch-up work after tab suspension or a long asset upload.
+    accumulator += Math.min(frameMs / 1000, STEP * 5);
     last = now;
 
     while (accumulator >= STEP) {
-      const k = chat.isOpen || !connected
+      const editing = document.activeElement instanceof HTMLElement
+        && Boolean(document.activeElement.closest('input, textarea, select, button, summary'));
+      const k = chat.isOpen || !connected || editing
         ? { moveX: 0, moveZ: 0, run: false, jump: false }
         : input.state;
       const f = orbit.forward();
@@ -292,7 +309,6 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
         avatarHeading = turnToward(avatarHeading, movementHeading, STEP);
       }
       animateAvatar(avatar, stepCount * STEP, actualSpeed, player.onGround, STEP);
-      remotes.tick(STEP);
 
       stepCount++;
       if (connected && stepCount % SEND_EVERY_N_STEPS === 0) {
@@ -303,12 +319,15 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
 
     avatar.position.set(player.x, player.y, player.z);
     avatar.rotation.y = avatarHeading;
+    remotes.tick(Math.min(frameMs / 1000, 0.1), player.x, player.z);
     voice.tick();
 
     const off = orbit.offset();
     camera.position.set(player.x + off.x, player.y + off.y, player.z + off.z);
     camera.lookAt(player.x, player.y + 1.5, player.z);
 
+    map.update(player.x, player.y, player.z, now, graphics.quality);
     renderer.render(scene, camera);
+    graphics.record(frameMs, now);
   });
 }

@@ -14,6 +14,7 @@ const ASSETS = {
   ruinedWall: '/environment-library/stone_arch.glb',
   flagstones: '/environment-library/flagstone_patch.glb',
   stoneCottage: '/environment-library/stone_cottage.glb',
+  cottageLow: '/environment-library/stone_cottage_low.glb',
 } as const;
 
 type AssetName = keyof typeof ASSETS;
@@ -117,8 +118,10 @@ function grassPlacements(): Placement[] {
       if (Math.abs(x) > 116 || Math.abs(z) > 116) continue;
       if (Math.hypot(x, z - 5) < 12) continue;
       if (Math.hypot((x - 26) / 12, (z + 23) / 8) < 1.12) continue;
-      const roadDistance = Math.min(...STUDY_ROADS.flatMap((road) =>
-        road.slice(1).map((point, index) => distanceToSegment(x, z, road[index], point))));
+      let roadDistance = Infinity;
+      for (const road of STUDY_ROADS) for (let i=1; i<road.length; i++) {
+        roadDistance = Math.min(roadDistance, distanceToSegment(x,z,road[i-1],road[i]));
+      }
       if (roadDistance < 2.4) continue;
       const riverV = (x + z - 60) / Math.SQRT2;
       if (Math.abs(riverV) < 3.5) continue;
@@ -137,10 +140,9 @@ function grassPlacements(): Placement[] {
 }
 
 function replaceMaterials(root: THREE.Object3D, kind: AssetName): void {
+  const materials = new Map<number, THREE.MeshStandardMaterial>();
   root.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return;
-    const lod = object.name.match(/LOD(\d+)/i);
-    if (lod) object.visible = lod[1] === '0';
     const replace = (oldMaterial: THREE.Material): THREE.MeshStandardMaterial => {
       const name = oldMaterial.name.toLowerCase();
       const leaves = kind === 'pine' && name.includes('leaves');
@@ -151,13 +153,17 @@ function replaceMaterials(root: THREE.Object3D, kind: AssetName): void {
               : kind === 'grass' ? 0x78a84d
                 : 0x7d9661;
       oldMaterial.dispose();
-      return new THREE.MeshStandardMaterial({
+      const cached = materials.get(color);
+      if (cached) return cached;
+      const material = new THREE.MeshStandardMaterial({
         name: oldMaterial.name,
         color,
         roughness: 0.95,
         metalness: 0,
         side: leaves ? THREE.DoubleSide : THREE.FrontSide,
       });
+      materials.set(color, material);
+      return material;
     };
     object.material = Array.isArray(object.material)
       ? object.material.map(replace)
@@ -173,36 +179,54 @@ function addInstances(
   name: string,
 ): void {
   root.updateMatrixWorld(true);
-  const sources: THREE.Mesh[] = [];
-  root.traverse((object) => {
-    if (object instanceof THREE.Mesh && object.visible) sources.push(object);
+  const levels = new Map<number, THREE.Mesh[]>();
+  root.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    let level = 0;
+    for (let node: THREE.Object3D | null = object; node; node = node.parent) {
+      const match = node.name.match(/LOD(\d+)/i);
+      if (match) { level = Number(match[1]); break; }
+    }
+    const list = levels.get(level) ?? [];
+    list.push(object); levels.set(level, list);
   });
-  if (sources.length === 0) throw new Error(`Environment asset ${name} has no visible LOD0 meshes.`);
-
-  for (const source of sources) {
-    const geometry = source.geometry.clone().applyMatrix4(source.matrixWorld);
-    const instances = new THREE.InstancedMesh(geometry, source.material, placements.length);
-    instances.name = name;
-    instances.castShadow = name !== 'instanced low-poly grass patches';
-    instances.receiveShadow = true;
-
-    const matrix = new THREE.Matrix4();
-    const position = new THREE.Vector3();
-    const rotation = new THREE.Quaternion();
-    const scale = new THREE.Vector3();
-    placements.forEach((placement, index) => {
-      position.set(
-        placement.x,
-        collision.groundAt(placement.x, placement.z) + (placement.yOffset ?? 0),
-        placement.z,
-      );
-      rotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), placement.rotation);
-      scale.set(placement.scale, placement.scaleY ?? placement.scale, placement.scale);
-      matrix.compose(position, rotation, scale);
-      instances.setMatrixAt(index, matrix);
-    });
-    instances.instanceMatrix.needsUpdate = true;
-    target.add(instances);
+  const cells = new Map<string, Placement[]>();
+  for (const p of placements) {
+    const key = Math.floor(p.x / 30) + ',' + Math.floor(p.z / 30);
+    const list = cells.get(key) ?? []; list.push(p); cells.set(key, list);
+  }
+  const grass = name.includes('grass patches');
+  const distances = grass ? [0, 28, 52, 75] : [0, 40, 85, 170];
+  const geometries = new Map<THREE.Mesh, THREE.BufferGeometry>();
+  const axis = new THREE.Vector3(0, 1, 0);
+  for (const [key, cell] of cells) {
+    const [cx, cz] = key.split(',').map(Number);
+    for (let level = 0; level < 3; level++) {
+      const chosen = [...levels.keys()].sort((a,b)=>Math.abs(a-level)-Math.abs(b-level) || b-a)[0];
+      const group = new THREE.Group();
+      group.userData.detail = { x: cx*30+15, z: cz*30+15, min: distances[level], max: distances[level+1], grass };
+      group.visible = false;
+      for (const source of levels.get(chosen) ?? []) {
+        let geometry = geometries.get(source);
+        if (!geometry) { geometry = source.geometry.clone().applyMatrix4(source.matrixWorld); geometries.set(source, geometry); }
+        const selected = grass ? cell.filter((_,i)=>i % (level+1) === 0) : cell;
+        const instances = new THREE.InstancedMesh(geometry, source.material, selected.length);
+        instances.name = name;
+        instances.castShadow = !grass && level === 0;
+        instances.receiveShadow = true;
+        const transform = new THREE.Object3D();
+        selected.forEach((p,index)=> {
+          transform.position.set(p.x,collision.groundAt(p.x,p.z)+(p.yOffset??0),p.z);
+          transform.quaternion.setFromAxisAngle(axis,p.rotation);
+          transform.scale.set(p.scale,p.scaleY??p.scale,p.scale);
+          transform.updateMatrix(); instances.setMatrixAt(index,transform.matrix);
+        });
+        instances.instanceMatrix.needsUpdate=true;
+        instances.computeBoundingSphere();
+        group.add(instances);
+      }
+      target.add(group);
+    }
   }
 }
 
@@ -245,23 +269,18 @@ export async function addEnvironmentAssets(
     { x: 13, z: 4, scale: 1, rotation: 0 },
     { x: 13, z: 12, scale: 1, rotation: 0.04 },
   ], 'three-low-poly market flagstones');
-  addInstances(target, collision, assets.stoneCottage, [
+  assets.stoneCottage.name = 'cottage_LOD0';
+  assets.cottageLow.name = 'cottage_LOD2';
+  const cottages = new THREE.Group();
+  cottages.add(assets.stoneCottage, assets.cottageLow);
+  addInstances(target, collision, cottages, [
     { x: -31, z: 16, scale: 1, rotation: -0.2 },
     { x: -24, z: 20, scale: 1, rotation: 0.25 },
     { x: -35, z: 25, scale: 1, rotation: 0.1 },
     { x: -15, z: 8, scale: 1.05, rotation: 0 },
     { x: 30, z: -34, scale: 1.18, rotation: 0 },
   ], 'three-low-poly stone cottages');
-  const grass = grassPlacements().flatMap((placement, index) => {
-    const angle = (index * 2.399963229728653) % (Math.PI * 2);
-    const offsetX = Math.cos(angle) * 0.22;
-    const offsetZ = Math.sin(angle) * 0.22;
-    return [
-      placement,
-      { ...placement, x: placement.x + offsetX, z: placement.z + offsetZ, scale: placement.scale * 0.82 },
-      { ...placement, x: placement.x - offsetX, z: placement.z - offsetZ, scale: placement.scale * 0.82 },
-    ];
-  });
+  const grass = grassPlacements();
   addInstances(target, collision, assets.grass, grass, 'instanced low-poly grass patches');
 
   const bridgeRotation = -Math.PI / 4;
@@ -326,4 +345,14 @@ export async function addEnvironmentAssets(
     rotation: 0,
   })));
   addInstances(target, collision, assets.fence, fences, 'Polytope village fences');
+}
+
+/** Each section submits only one detail level. */
+export function updateEnvironment(target: THREE.Group, x: number, z: number, distanceScale: number): void {
+  for (const group of target.children) {
+    const detail = group.userData.detail;
+    if (!detail) continue;
+    const distance = Math.hypot(detail.x-x,detail.z-z) / distanceScale;
+    group.visible = distance >= detail.min && distance < detail.max;
+  }
 }

@@ -28,9 +28,15 @@ describe('WorldRoom', () => {
   it('restores the same session after a transport drop', async () => {
     const room = await colyseus.createRoom('world', {});
     const client = await colyseus.connectTo(room, { name: 'Alice', colorIndex: 1 });
+    // connectTo resolves at the client JOIN response. Wait for the initial state
+    // so the server has processed the client's JOIN acknowledgement before dropping it.
+    await room.waitForNextPatch();
     const token = client.reconnectionToken;
     const identity = client.sessionId;
     await client.leave(false);
+    // The client's close event can precede the server's close handler, which
+    // registers the reconnection reservation. Wait for that handler to run.
+    await expect.poll(() => room.clients.length).toBe(0);
     const restored = await colyseus.sdk.reconnect(token);
     expect(restored.sessionId).toBe(identity);
     expect(room.state.players.has(identity)).toBe(true);

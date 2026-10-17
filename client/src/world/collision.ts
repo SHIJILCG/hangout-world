@@ -21,7 +21,28 @@ function circleOverlapsBox(x: number, z: number, radius: number, b: Box): boolea
 }
 
 export class CollisionWorld {
-  constructor(private boxes: Box[], private ground: number | HeightGrid = 0) {}
+  private cells = new Map<string, number[]>();
+  private readonly cellSize = 8;
+  constructor(private boxes: Box[], private ground: number | HeightGrid = 0) {
+    boxes.forEach((b,index) => {
+      for (let x=Math.floor(b.minX/this.cellSize); x<=Math.floor(b.maxX/this.cellSize); x++) {
+        for (let z=Math.floor(b.minZ/this.cellSize); z<=Math.floor(b.maxZ/this.cellSize); z++) {
+          const key=`${x},${z}`;
+          const cell=this.cells.get(key)??[]; cell.push(index); this.cells.set(key,cell);
+        }
+      }
+    });
+  }
+
+  private nearby(x: number, z: number, radius: number): number[] {
+    const found = new Set<number>();
+    for (let cx=Math.floor((x-radius)/this.cellSize); cx<=Math.floor((x+radius)/this.cellSize); cx++) {
+      for (let cz=Math.floor((z-radius)/this.cellSize); cz<=Math.floor((z+radius)/this.cellSize); cz++) {
+        for (const index of this.cells.get(`${cx},${cz}`)??[]) found.add(index);
+      }
+    }
+    return [...found].sort((a,b)=>a-b);
+  }
 
   groundAt(x: number, z: number): number {
     const g = this.ground;
@@ -51,7 +72,8 @@ export class CollisionWorld {
 
   supportHeightAt(x: number, z: number, footY: number, radius: number): number {
     let support = this.groundAt(x, z);
-    for (const b of this.boxes) {
+    for (const index of this.nearby(x,z,radius)) {
+      const b=this.boxes[index];
       if (b.maxY <= footY + STEP_HEIGHT + 1e-6 &&
           b.maxY > support &&
           circleOverlapsBox(x, z, radius, b)) {
@@ -62,7 +84,13 @@ export class CollisionWorld {
   }
 
   resolveHorizontal(x: number, z: number, footY: number, radius: number, height: number): { x: number; z: number } {
-    for (const b of this.boxes) {
+    let candidates = this.nearby(x,z,radius);
+    let previousIndex = -1;
+    while (candidates.length) {
+      const index=candidates.shift()!;
+      if (index<=previousIndex) continue;
+      previousIndex=index;
+      const b=this.boxes[index];
       const blocksBody = b.maxY > footY + STEP_HEIGHT && b.minY < footY + height;
       if (!blocksBody || !circleOverlapsBox(x, z, radius, b)) continue;
 
@@ -79,6 +107,8 @@ export class CollisionWorld {
       } else {
         z = pushBack <= pushFront ? b.minZ - radius : b.maxZ + radius;
       }
+      // A push can enter another grid cell. Retain original box ordering.
+      candidates=this.nearby(x,z,radius).filter(i=>i>index);
     }
     return { x, z };
   }

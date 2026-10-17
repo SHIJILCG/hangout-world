@@ -34,3 +34,8 @@ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
+# Simplified cottage variant
+
+`stone_cottage_low.glb` is generated from `stone_cottage.glb` by
+`client/scripts/cottage-lod.mjs` using Three.js SimplifyModifier. It retains the
+source cottage's licensing and attribution above.

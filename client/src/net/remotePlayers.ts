@@ -20,6 +20,7 @@ interface Entry {
   root: THREE.Group;
   pose: Pose;     // rendered (smoothed) pose
   target: Pose;   // latest server pose
+  animationTime: number;
 }
 
 export class RemotePlayers {
@@ -44,7 +45,7 @@ export class RemotePlayers {
     root.rotation.y = pose.heading;
 
     this.group.add(root);
-    this.entries.set(sessionId, { root, pose, target: { ...pose } });
+    this.entries.set(sessionId, { root, pose, target: { ...pose }, animationTime: 0 });
   }
 
   updateTarget(sessionId: string, pose: Pose): void {
@@ -70,7 +71,8 @@ export class RemotePlayers {
     if (entry) setSpeaking(entry.root, speaking);
   }
 
-  tick(dt: number): void {
+  tick(dt: number, viewerX = 0, viewerZ = 0): void {
+    if (dt <= 0) return;
     this.time += dt;
     for (const entry of this.entries.values()) {
       const previous = entry.pose;
@@ -78,7 +80,14 @@ export class RemotePlayers {
       entry.root.position.set(entry.pose.x, entry.pose.y, entry.pose.z);
       entry.root.rotation.y = entry.pose.heading;
       const speed = Math.min(8, Math.hypot(entry.pose.x - previous.x, entry.pose.z - previous.z) / dt);
-      animateAvatar(entry.root, this.time, speed, this.isGrounded(entry.pose), dt);
+      const distance=Math.hypot(entry.pose.x-viewerX,entry.pose.z-viewerZ);
+      entry.root.visible=distance<150;
+      entry.animationTime+=dt;
+      const interval=distance<30?0:distance<70?1/20:1/10;
+      if (entry.root.visible && entry.animationTime>=interval) {
+        animateAvatar(entry.root, this.time, speed, this.isGrounded(entry.pose), Math.min(entry.animationTime,0.2));
+        entry.animationTime=0;
+      } else if (!entry.root.visible) entry.animationTime=0;
     }
   }
 

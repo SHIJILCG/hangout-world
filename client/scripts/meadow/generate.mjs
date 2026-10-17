@@ -3,6 +3,7 @@ import { buildMeadow } from './scene.mjs';
 import { encodeGLB } from './glb.mjs';
 import { validateMeadow } from './validate.mjs';
 import { buildCollisionManifest } from './collision.mjs';
+import { writeChunks } from './chunks.mjs';
 
 const output = new URL('../../public/models/fantasy-meadow.glb', import.meta.url);
 const manifestOutput = new URL('../../src/world/meadow-collision.json', import.meta.url);
@@ -12,6 +13,7 @@ try {
   const report = validateMeadow(buffer);
   await mkdir(new URL('.', output), { recursive: true });
   await writeFile(output, buffer);
+  await writeChunks(scene);
 
   const manifest = buildCollisionManifest();
   await mkdir(new URL('.', manifestOutput), { recursive: true });
