@@ -34,12 +34,12 @@ describe('showJoinScreen', () => {
       expect(el<HTMLButtonElement>('#join-btn').disabled).toBe(false);
     } finally { vi.useRealTimers(); }
   });
-  it('renders one default avatar with 6 outfit colors and a join button', () => {
+  it('renders every character choice and a join button', () => {
     showJoinScreen(async () => {});
     expect(el('#join-screen')).toBeTruthy();
     expect(el('#join-name')).toBeTruthy();
-    expect(document.querySelectorAll('.join-character').length).toBe(0);
-    expect(document.querySelectorAll('.join-swatch').length).toBe(6);
+    expect(el('#join-screen').textContent).toContain('Choose your character');
+    expect(document.querySelectorAll('.join-swatch').length).toBe(7);
     expect(el('#join-btn')).toBeTruthy();
   });
 
@@ -51,7 +51,7 @@ describe('showJoinScreen', () => {
     expect(swatches[0].classList.contains('selected')).toBe(false);
   });
 
-  it('calls onJoin with the selected color and trimmed name', async () => {
+  it('calls onJoin with the selected character index and trimmed name', async () => {
     const onJoin = vi.fn().mockResolvedValue(undefined);
     showJoinScreen(onJoin);
     el<HTMLInputElement>('#join-name').value = '  Alice ';

@@ -20,6 +20,16 @@ describe('createChatPanel', () => {
     expect(document.activeElement).toBe(input());
   });
 
+  it('shows a visible nearby-chat button and opens the input when clicked', () => {
+    const panel = createChatPanel(() => {});
+    const button = document.querySelector<HTMLButtonElement>('#chat-toggle')!;
+    expect(button).not.toBeNull();
+    expect(document.querySelector('#chat-hint')!.textContent).toContain('18 m');
+    button.click();
+    expect(panel.isOpen).toBe(true);
+    expect(document.activeElement).toBe(input());
+  });
+
   it('Enter sends the trimmed text, clears, and closes', () => {
     const onSend = vi.fn();
     const panel = createChatPanel(onSend);

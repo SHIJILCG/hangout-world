@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { animateAvatar, createAvatar, disposeAvatar } from '../player/avatar';
+import { animateAvatar, createAvatar, disposeAvatar, loadAvatar } from '../player/avatar';
 import { createNameTag } from '../player/nametag';
 import { PLAYER_HEIGHT } from '../player/controller';
 import { AVATAR_COLORS } from './connection';
@@ -33,6 +33,7 @@ export class RemotePlayers {
     if (this.entries.has(sessionId)) this.remove(sessionId);
     const color = AVATAR_COLORS[info.colorIndex] ?? AVATAR_COLORS[0];
     const root = createAvatar(color);
+    void loadAvatar(root, info.colorIndex).catch((error: unknown) => console.error('Could not load medieval character', error));
     const tag = createNameTag(info.name);
     tag.position.set(0, PLAYER_HEIGHT + 0.45, 0);
     root.add(tag);

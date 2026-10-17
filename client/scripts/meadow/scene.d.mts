@@ -11,6 +11,7 @@ export declare const SPEC: Readonly<{
   riverWidth: number;
   bridgeCenter: number;
   bridgeHeight: number;
+  bridgeEndHeight: number;
   bridgeRise: number;
   ruinRise: number;
   maxTriangles: number;

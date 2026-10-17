@@ -8,15 +8,15 @@ manifest in `client/src/world/meadow-collision.json`.
 ## Contents and coordinates
 
 - glTF 2.0 binary, Y-up, meters, identity node transforms, embedded geometry.
-- Playable terrain: **160 x 160 m**, `x,z = [-80,80]`. The exact center is `(0,0,0)`.
+- Playable terrain: **240 x 240 m**, `x,z = [-120,120]`. The exact center is `(0,0,0)`.
   The central plaza remains flat while the outer meadow gains distinct village,
   park/pond, activity meadow, stable, forest, ruins, and countryside zones.
 - A radius-10 m disk at the center is flat grass at `y=0`, without props,
   flowers, or paths. A small additional flat margin keeps boundary triangles flat.
-- The 128-segment terrain profile in `client/scripts/meadow/terrain.mjs` is a
+- The 160-segment terrain profile in `client/scripts/meadow/terrain.mjs` is a
   gameplay-adapted visual study inspired by the isolated Environment_Free
   preview; it is not an export or exact copy of Unity TerrainData. The mesh has
-  16,641 grid samples and 32,768 terrain triangles, with the collision
+  25,921 grid samples and 51,200 terrain triangles, with the collision
   heightfield sampled at the same coordinates.
 - Broad rolling hills surround the flat social clearing, pond basin, and
   bridge approach. Dirt paths curve around the clearing and branch toward the
@@ -34,16 +34,16 @@ manifest in `client/src/world/meadow-collision.json`.
 - The ruined arch is centered at `(-18,-16)` in XZ. A fallen-block pile has
   twelve 0.3 m rises, 0.85 m treads, and 1.7 m-wide tops, reaching its
   `y=3.6` crown. Broken columns and rubble surround it.
-- Ten deterministic spawn pads ring the central plaza. Twenty-five faceted trees,
+- Ten deterministic spawn pads ring the central plaza. Seventy-four faceted trees,
   village cottages, a stable/paddock, activity markers, wooden fences, low rocks,
   and white/yellow wildflower patches populate the expanded world.
 - Snowy mountains, a castle plateau, and a blue lake are visual-only backdrop
-  meshes, with all geometry between 100 and 200 m horizontally from the origin.
+  meshes, with all geometry between 100 and 260 m horizontally from the origin.
   The space between the playable square and backdrop is intentionally not
   traversable terrain; use the host scene's sky/background and distance fog.
 
-The complete generated environment contains **59,389 triangles** under a strict
-`<60,000` threshold; the terrain itself contributes 32,768 triangles. The
+The complete generated environment contains fewer than **90,000 triangles**;
+the terrain itself contributes 51,200 triangles. The
 terrain uses smooth heightfield normals; props use flat normals. All surfaces
 share a single rough, opaque vertex-color material.
 There are **no textures, animations, embedded lights, lightmaps, or transparent

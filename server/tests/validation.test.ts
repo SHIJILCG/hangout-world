@@ -28,6 +28,7 @@ describe('clampColorIndex', () => {
   it('passes valid indexes through', () => {
     expect(clampColorIndex(0)).toBe(0);
     expect(clampColorIndex(5)).toBe(5);
+    expect(clampColorIndex(6)).toBe(6);
   });
 
   it('clamps/repairs invalid input to 0', () => {

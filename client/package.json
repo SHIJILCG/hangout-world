@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "test": "vitest run",
+    "dev": "vite --configLoader native",
+    "build": "tsc --noEmit && vite build --configLoader native",
+    "test": "vitest run --configLoader runner",
     "generate:meadow": "node scripts/meadow/generate.mjs",
     "validate:meadow": "node scripts/meadow/validate.mjs",
     "test:meadow": "node --test scripts/meadow/meadow.check.mjs"

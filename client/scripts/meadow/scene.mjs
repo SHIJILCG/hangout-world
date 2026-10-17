@@ -5,7 +5,7 @@ export { groundHeight };
 
 export const SPEC = Object.freeze({
   seed: 728194,
-  playableHalf: 80,
+  playableHalf: 120,
   emptyRadius: 10,
   spawnPoints: [
     [0, 8], [1.9, 8], [1.55, 6.8], [0.6, 5.8], [-0.6, 5.8],
@@ -15,9 +15,10 @@ export const SPEC = Object.freeze({
   riverWidth: 4,
   bridgeCenter: 30,
   bridgeHeight: 1,
-  bridgeRise: 0.25,
+  bridgeEndHeight: 0.56,
+  bridgeRise: 0.14,
   ruinRise: 0.3,
-  maxTriangles: 60000,
+  maxTriangles: 90000,
 });
 
 const palette = {
@@ -51,10 +52,10 @@ function segmentDistance(x, z, a, b) {
 export const pathCurves = [
   // Main roads connect the plaza to every edge and remain curved rather than
   // becoming a grid when the playable square expands.
-  [[-SPEC.playableHalf, 7], [-68, 7], [-55, 7], [-39, 5], [-23, 3], [-12, 9]],
-  [[-9, -12], [-8, -21], [-3, -30], [3, -39], [7, -55], [5, -68], [5, -SPEC.playableHalf]],
-  [[9, 12], [14, 13], [23, 20], bridgePoint(0), [40, 40], [57, 57], [68, 68], [SPEC.playableHalf, SPEC.playableHalf]],
-  [[13, -3], [21, -6], [30, -7], [39, -10], [55, -8], [68, -5], [SPEC.playableHalf, -5]],
+  [[-SPEC.playableHalf, 7], [-100, 7], [-78, 7], [-55, 7], [-39, 5], [-23, 3], [-12, 9]],
+  [[-9, -12], [-8, -21], [-3, -30], [3, -39], [7, -55], [5, -78], [5, -100], [5, -SPEC.playableHalf]],
+  [[9, 12], [14, 13], [23, 20], bridgePoint(0), [40, 40], [57, 57], [78, 78], [100, 100], [SPEC.playableHalf, SPEC.playableHalf]],
+  [[13, -3], [21, -6], [30, -7], [39, -10], [55, -8], [78, -5], [100, -5], [SPEC.playableHalf, -5]],
   // Secondary lanes serve the village, paddock, park, and countryside.
   [[-42, 25], [-34, 22], [-27, 17], [-19, 13], [-12, 9]],
   [[12, 9], [20, 5], [29, 1], [38, 2], [47, 12]],
@@ -70,6 +71,28 @@ export function pathDistance(x, z) {
     }
   }
   return distance;
+}
+
+function nearestRoadDetails(x, z) {
+  let bestDistance = Infinity;
+  let bestOffset = 0;
+  for (const points of pathCurves) {
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const dx = b[0] - a[0], dz = b[1] - a[1];
+      const lengthSquared = dx * dx + dz * dz;
+      const length = Math.sqrt(lengthSquared);
+      const t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / lengthSquared, 0, 1);
+      const offsetX = x - a[0] - t * dx;
+      const offsetZ = z - a[1] - t * dz;
+      const distance = Math.hypot(offsetX, offsetZ);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestOffset = (offsetX * -dz + offsetZ * dx) / length;
+      }
+    }
+  }
+  return { distance: bestDistance, offset: bestOffset };
 }
 
 export function buildMeadow() {
@@ -110,20 +133,34 @@ export function buildMeadow() {
   const terrainPositions = [], terrainColors = [], terrainIndices = [];
   const terrainSpacing = (half * 2) / TERRAIN_SEGMENTS;
   const grassBase = new THREE.Color().setRGB(0.19, 0.36, 0.12);
-  const grassTop = new THREE.Color('#bad67a');
+  const grassTop = new THREE.Color('#cfdf8b');
+  const roadBase = new THREE.Color('#98734f');
+  const roadRut = new THREE.Color('#745438');
+  const roadCenter = new THREE.Color('#a17d56');
   for (let iz = 0; iz <= TERRAIN_SEGMENTS; iz++) {
     const z = -half + iz * terrainSpacing;
     for (let ix = 0; ix <= TERRAIN_SEGMENTS; ix++) {
       const x = -half + ix * terrainSpacing;
       const height = groundHeight(x, z);
       terrainPositions.push(x, height, z);
-      const variation = 0.93 + 0.05 * Math.sin(x * 0.31) * Math.cos(z * 0.27)
-        + 0.025 * Math.sin((x + z) * 0.69);
-      const color = Math.abs(riverV(x, z)) < 2
+      const variation = 0.9 + 0.08 * Math.sin(x * 0.31) * Math.cos(z * 0.27)
+        + 0.04 * Math.sin((x + z) * 0.69);
+      let color = Math.abs(riverV(x, z)) < 2
         ? new THREE.Color('#abac75')
-        : Math.hypot(x, z) > 12 && pathDistance(x, z) < 2.4
-          ? new THREE.Color('#9b754e')
-          : grassBase.clone().lerp(grassTop, smooth((height + 0.6) / 3.6)).multiplyScalar(variation);
+        : grassBase.clone().lerp(grassTop, smooth((height + 0.6) / 5.2)).multiplyScalar(variation);
+      if (Math.abs(riverV(x, z)) >= 2 && Math.hypot(x, z) > 12) {
+        const { distance, offset } = nearestRoadDetails(x, z);
+        const roadBlend = 1 - smooth((distance - 1.35) / 1.45);
+        if (roadBlend > 0) {
+          const grain = 0.94 + 0.045 * Math.sin(x * 1.63 + z * 0.71) * Math.cos(z * 1.31 - x * 0.47);
+          const roadColor = roadBase.clone().multiplyScalar(grain);
+          const ruts = Math.exp(-(((Math.abs(offset) - 0.82) / 0.48) ** 2));
+          const wornCenter = Math.exp(-((offset / 0.48) ** 2));
+          roadColor.lerp(roadRut, ruts * 0.24);
+          roadColor.lerp(roadCenter, wornCenter * 0.09);
+          color.lerp(roadColor, roadBlend);
+        }
+      }
       terrainColors.push(color.r, color.g, color.b);
     }
   }
@@ -179,11 +216,11 @@ export function buildMeadow() {
     { role: 'bridge-deck', walkable: true, top: 1 });
   for (const side of [-1, 1]) {
     for (let i = 0; i < 4; i++) {
-      const top = (i + 1) * 0.25;
+      const top = SPEC.bridgeRise * (i + 1);
       const [x, z] = bridgePoint(side * (6 - i * 0.8));
       box(`Bridge ${side < 0 ? 'west' : 'east'} step ${i + 1}`, x, z, 0.8, top, 3.2,
         choose(palette.stone), 0, bridgeRotation,
-        { role: 'bridge-step', route: `bridge-${side}`, step: i + 1, top, rise: 0.25, run: 0.8, walkable: true });
+        { role: 'bridge-step', route: `bridge-${side}`, step: i + 1, top, rise: SPEC.bridgeRise, run: 0.8, walkable: true });
     }
     const sideShape = new THREE.Shape();
     sideShape.moveTo(-3.2, -0.65);
@@ -344,6 +381,13 @@ export function buildMeadow() {
     [-48, -10], [-43, 4], [42, 6], [52, 18], [-15, 43],
     [6, 48], [19, 52], [-4, -44], [12, -50], [32, 42],
     [-53, -44], [-23, -49], [48, 34], [35, 28], [-45, 28],
+    [-105, -84], [-93, -96], [-76, -105], [-46, -105], [-18, -106], [12, -108], [42, -107], [75, -100], [100, -87],
+    [106, -54], [108, -22], [107, 12], [108, 44], [103, 76], [86, 103], [55, 108], [23, 107], [-10, 108], [-43, 106],
+    [-77, 103], [-103, 84], [-108, 51], [-107, 19], [-108, -15], [-107, -48],
+    [-97, -70], [-86, -42], [-101, -8], [-87, 28], [-94, 59], [-76, 82],
+    [-59, 96], [-28, 101], [2, 97], [30, 103], [62, 96], [91, 89],
+    [98, 61], [94, 31], [100, 0], [95, -31], [103, -61], [81, -89],
+    [55, -96], [24, -101], [-7, -97], [-37, -102], [-67, -94], [-92, -91],
   ];
   for (let i = 0; i < trees.length; i++) {
     const [x, z] = trees[i], y = groundHeight(x, z), height = 4.5 + random() * 1.5;
@@ -407,10 +451,10 @@ export function buildMeadow() {
       undefined, undefined, 0, { role: 'flowers', kind });
   }
 
-  // Separate visual-only islands keep every backdrop vertex 100–200 m from the origin.
+  // Separate visual-only scenery beyond the expanded playable border.
   for (let i = 0; i < 12; i++) {
     const angle = i * Math.PI * 2 / 12;
-    const radius = 151 + random() * 9, height = 25 + random() * 22, width = 15 + random() * 8;
+    const radius = 219 + random() * 9, height = 25 + random() * 22, width = 18 + random() * 8;
     const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
     // Split mountain sides at a shared snowline, retaining angular, low-detail ridges.
     const snowHeight = height * 0.3, lowerHeight = height - snowHeight;
@@ -421,23 +465,42 @@ export function buildMeadow() {
       '#e3eee4', [x, lowerHeight + snowHeight / 2 - 2, z], undefined, angle,
       { role: 'backdrop', visualOnly: true });
   }
+  // A nearer, lower foothill ring gives the valley a layered mountain horizon
+  // instead of a single row of isolated peaks. These remain visual-only.
+  for (let i = 0; i < 18; i++) {
+    const angle = (i + 0.5) * Math.PI * 2 / 18;
+    const radius = 185 + random() * 8;
+    const height = 14 + random() * 10;
+    const width = 10 + random() * 5;
+    const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+    const snowHeight = i % 4 === 0 ? height * 0.18 : 0;
+    const ridgeHeight = height - snowHeight;
+    add(`Backdrop foothill ${i + 1}`, new THREE.CylinderGeometry(width * 0.28, width, ridgeHeight, 6),
+      ['#557c70', '#668777', '#748f7b'][i % 3], [x, ridgeHeight / 2 - 2, z], undefined, angle,
+      { role: 'backdrop', visualOnly: true });
+    if (snowHeight > 0) {
+      add(`Backdrop foothill snow ${i + 1}`, new THREE.ConeGeometry(width * 0.28, snowHeight, 6),
+        '#d9e7dd', [x, ridgeHeight + snowHeight / 2 - 2, z], undefined, angle,
+        { role: 'backdrop', visualOnly: true });
+    }
+  }
   add('Backdrop castle plateau', new THREE.CylinderGeometry(15, 21, 16, 7), '#81a477',
-    [-80, 6, -105], undefined, 0, { role: 'backdrop', visualOnly: true });
-  box('Backdrop castle keep', -80, -105, 10, 10, 7, '#d4d8bc', 14, 0, { role: 'backdrop', visualOnly: true });
+    [-157, 6, -151], undefined, 0, { role: 'backdrop', visualOnly: true });
+  box('Backdrop castle keep', -157, -151, 10, 10, 7, '#d4d8bc', 14, 0, { role: 'backdrop', visualOnly: true });
   for (const [dx, dz] of [[-6, -4], [6, -4], [-6, 4], [6, 4]]) {
     add(`Backdrop castle tower ${dx} ${dz}`, new THREE.CylinderGeometry(1.8, 2, 14, 6), '#e0e1c8',
-      [-80 + dx, 21, -105 + dz], undefined, 0, { role: 'backdrop', visualOnly: true });
+      [-157 + dx, 21, -151 + dz], undefined, 0, { role: 'backdrop', visualOnly: true });
     add(`Backdrop castle roof ${dx} ${dz}`, new THREE.ConeGeometry(2.5, 5, 6), '#638a91',
-      [-80 + dx, 30.5, -105 + dz], undefined, 0, { role: 'backdrop', visualOnly: true });
+      [-157 + dx, 30.5, -151 + dz], undefined, 0, { role: 'backdrop', visualOnly: true });
   }
   for (let i = 0; i < 6; i++) {
-    box(`Backdrop castle merlon ${i}`, -84.5 + i * 1.8, -101.5, 0.9, 1, 0.9, '#e4e2c9', 24, 0,
+    box(`Backdrop castle merlon ${i}`, -161.5 + i * 1.8, -147.5, 0.9, 1, 0.9, '#e4e2c9', 24, 0,
       { role: 'backdrop', visualOnly: true });
   }
   add('Backdrop lake shore', new THREE.CylinderGeometry(1, 1, 0.5, 13), '#8ba982',
-    [91, -1.1, -83], [24, 1, 13], 0.2, { role: 'backdrop', visualOnly: true });
+    [173, -1.1, -131], [30, 1, 17], 0.2, { role: 'backdrop', visualOnly: true });
   add('Backdrop blue lake', new THREE.CircleGeometry(1, 13).rotateX(-Math.PI / 2), '#529fa9',
-    [91, -0.8, -83], [22, 1, 11], 0.2, { role: 'backdrop', visualOnly: true });
+    [173, -0.8, -131], [28, 1, 15], 0.2, { role: 'backdrop', visualOnly: true });
 
   return { meshes, spec: SPEC };
 }

@@ -1,4 +1,4 @@
-import { CollisionWorld } from '../world/collision';
+import { CollisionWorld, STEP_HEIGHT } from '../world/collision';
 
 export interface PlayerState {
   x: number; y: number; z: number;
@@ -52,10 +52,11 @@ export function updatePlayer(s: PlayerState, input: MoveInput, dt: number, world
   next.vy += GRAVITY * dt;
   next.y += next.vy * dt;
 
-  // Land / snap to the supporting surface (step detection uses the
-  // pre-move foot height so we can step up but not teleport up walls).
+  // Land / snap to the supporting surface. Step detection uses the pre-move
+  // foot height, allowing small rises and descents without teleporting up walls.
   const support = world.supportHeightAt(next.x, next.z, s.y, PLAYER_RADIUS);
-  if (next.vy <= 0 && next.y <= support) {
+  const canStepDown = s.onGround && s.y - support <= STEP_HEIGHT + 1e-6;
+  if (next.vy <= 0 && (next.y <= support || canStepDown)) {
     next.y = support;
     next.vy = 0;
     next.onGround = true;

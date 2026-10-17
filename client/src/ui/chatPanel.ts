@@ -9,7 +9,7 @@ export interface ChatPanel {
 }
 
 const CSS = `
-#chat-root { position: fixed; left: 16px; bottom: 16px; width: 340px; z-index: 5;
+#chat-root { position: fixed; left: 16px; bottom: 16px; width: 340px; z-index: 7;
   font-family: system-ui, sans-serif; font-size: 14px; pointer-events: none; }
 #chat-log { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column;
   gap: 2px; margin-bottom: 6px; }
@@ -20,6 +20,11 @@ const CSS = `
 #chat-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px;
   border: 1px solid #91ab88; background: rgba(32, 61, 53, 0.95);
   color: #fff5da; pointer-events: auto; }
+#chat-toggle { pointer-events: auto; padding: 8px 14px; border: 1px solid #91ab88;
+  border-radius: 9px; background: rgba(32, 61, 53, 0.96); color: #fff5da;
+  font-weight: 650; cursor: pointer; box-shadow: 0 4px 14px #16332855; }
+#chat-hint { display: inline-block; margin-left: 8px; padding: 6px 9px; border-radius: 8px;
+  background: rgba(32, 61, 53, 0.82); color: #fff5da; font-size: 12px; }
 #chat-input.hidden { display: none; }
 `;
 
@@ -30,10 +35,11 @@ export function createChatPanel(onSend: (text: string) => void): ChatPanel {
 
   const root = document.createElement('div');
   root.id = 'chat-root';
-  root.innerHTML = `<div id="chat-log"></div><input id="chat-input" class="hidden" maxlength="200" placeholder="Press Enter to chat" />`;
+  root.innerHTML = `<div id="chat-log" role="log" aria-live="polite"></div><button id="chat-toggle" type="button" aria-label="Open nearby chat">Chat</button><span id="chat-hint">Nearby chat within 18 m. Press Enter to open.</span><input id="chat-input" class="hidden" maxlength="200" aria-label="Chat message" placeholder="Message nearby players; press Enter to send" />`;
   document.body.appendChild(root);
 
   const log = root.querySelector<HTMLDivElement>('#chat-log')!;
+  const toggle = root.querySelector<HTMLButtonElement>('#chat-toggle')!;
   const inputEl = root.querySelector<HTMLInputElement>('#chat-input')!;
   let openState = false;
 
@@ -42,7 +48,14 @@ export function createChatPanel(onSend: (text: string) => void): ChatPanel {
     openState = false;
     inputEl.value = '';
     inputEl.classList.add('hidden');
+    toggle.textContent = 'Chat';
     inputEl.blur();
+  };
+  const open = () => {
+    inputEl.classList.remove('hidden');
+    toggle.textContent = 'Chat open · Esc to close';
+    openState = true;
+    inputEl.focus();
   };
 
   inputEl.addEventListener('keydown', (e) => {
@@ -56,6 +69,7 @@ export function createChatPanel(onSend: (text: string) => void): ChatPanel {
     }
   });
   inputEl.addEventListener('keyup', (e) => e.stopPropagation());
+  toggle.addEventListener('click', () => { if (!openState) open(); });
   // Clicking the canvas (or anywhere else) blurs the input without going
   // through Enter/Esc — make sure that also closes the panel, so movement
   // input resumes and Enter/Esc can reopen it.
@@ -63,11 +77,7 @@ export function createChatPanel(onSend: (text: string) => void): ChatPanel {
 
   return {
     get isOpen() { return openState; },
-    open() {
-      inputEl.classList.remove('hidden');
-      openState = true;
-      inputEl.focus();
-    },
+    open,
     addMessage(name: string, text: string, isSelf = false, senderId?: string) {
       const line = document.createElement('div');
       line.className = 'chat-line' + (isSelf ? ' self' : '');

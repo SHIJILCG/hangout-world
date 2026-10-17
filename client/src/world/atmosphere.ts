@@ -26,7 +26,7 @@ export function createAtmosphere(): THREE.Group {
     const angle = i * Math.PI * 2 / 12;
     for (let j = 0; j < 3; j++) {
       const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
-      cloud.position.set(Math.cos(angle) * 120 + j * 6, 45 + (i % 3) * 9, Math.sin(angle) * 120);
+      cloud.position.set(Math.cos(angle) * 190 + j * 6, 45 + (i % 3) * 9, Math.sin(angle) * 190);
       cloud.scale.set(10, 3 + j, 5);
       group.add(cloud);
     }
@@ -34,16 +34,16 @@ export function createAtmosphere(): THREE.Group {
 
   // Visual-only valley floor hides the gap between the playable tile and backdrop.
   const outer = new THREE.Shape();
-  outer.moveTo(-220, -220);
-  outer.lineTo(220, -220);
-  outer.lineTo(220, 220);
-  outer.lineTo(-220, 220);
+  outer.moveTo(-280, -280);
+  outer.lineTo(280, -280);
+  outer.lineTo(280, 280);
+  outer.lineTo(-280, 280);
   outer.closePath();
   const opening = new THREE.Path();
-  opening.moveTo(-40, -40);
-  opening.lineTo(-40, 40);
-  opening.lineTo(40, 40);
-  opening.lineTo(40, -40);
+  opening.moveTo(-120, -120);
+  opening.lineTo(-120, 120);
+  opening.lineTo(120, 120);
+  opening.lineTo(120, -120);
   opening.closePath();
   outer.holes.push(opening);
   const valley = new THREE.Mesh(

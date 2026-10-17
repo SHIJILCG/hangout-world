@@ -30,7 +30,7 @@ export function validateMeadow(buffer) {
   assert.equal(json.buffers[0].byteLength, binary.length);
   assert.ok(!json.buffers[0].uri, 'GLB must be self-contained');
   assert.equal(json.scenes.length, 1);
-  assert.equal(json.scenes[0].extras.playableHalf, 80);
+  assert.equal(json.scenes[0].extras.playableHalf, 120);
   assert.equal(json.scenes[0].extras.bridgeCenter, 30);
   assert.equal(json.materials.length, 1);
   assert.equal(json.materials[0].alphaMode, 'OPAQUE');
@@ -70,11 +70,11 @@ export function validateMeadow(buffer) {
       }
       near(Math.hypot(...normals.slice(i, i + 3)), 1, `Unit normal in ${node.name}`);
       if (node.extras.role !== 'backdrop') {
-        assert.ok(Math.abs(positions[i]) <= 80 + EPS && Math.abs(positions[i + 2]) <= 80 + EPS,
-        `Playable mesh outside 160m square: ${node.name}`);
+        assert.ok(Math.abs(positions[i]) <= 120 + EPS && Math.abs(positions[i + 2]) <= 120 + EPS,
+        `Playable mesh outside 240m square: ${node.name}`);
       } else {
         assert.equal(node.extras.visualOnly, true);
-        assert.ok(Math.hypot(positions[i], positions[i + 2]) <= 200 + EPS, `Backdrop beyond 200m: ${node.name}`);
+        assert.ok(Math.hypot(positions[i], positions[i + 2]) <= 260 + EPS, `Backdrop beyond 260m: ${node.name}`);
       }
     }
     for (let i = 0; i < positions.length; i += 9) {
@@ -103,11 +103,11 @@ export function validateMeadow(buffer) {
     assert.deepEqual(accessor.max, max);
     nodes.push({ ...node, min, max, positions });
   }
-  assert.ok(triangles < 60000, `Triangle budget exceeded: ${triangles}`);
+  assert.ok(triangles < 90000, `Triangle budget exceeded: ${triangles}`);
   assert.ok(backdropTriangles < 2000, `Backdrop must remain low detail: ${backdropTriangles}`);
   const terrain = nodes.find((n) => n.extras.role === 'terrain');
   assert.ok(terrain);
-  for (const axis of [0, 2]) { near(terrain.min[axis], -80, 'Ground min'); near(terrain.max[axis], 80, 'Ground max'); }
+  for (const axis of [0, 2]) { near(terrain.min[axis], -120, 'Ground min'); near(terrain.max[axis], 120, 'Ground max'); }
   const river = nodes.find((n) => n.extras.role === 'river');
   assert.ok(river);
   const riverV = [];
@@ -117,8 +117,8 @@ export function validateMeadow(buffer) {
   }
   near(Math.max(...riverV) - Math.min(...riverV), 4, 'River width');
   near((Math.max(...riverV) + Math.min(...riverV)) / 2, 0, 'River stays in the expanded corner');
-  near(river.max[0], 80, 'River reaches east boundary');
-  near(river.max[2], 80, 'River reaches south boundary');
+  near(river.max[0], 120, 'River reaches east boundary');
+  near(river.max[2], 120, 'River reaches south boundary');
   const deck = nodes.find((n) => n.extras.role === 'bridge-deck');
   const crown = nodes.find((n) => n.extras.role === 'ruin-crown');
   assert.ok(deck && crown);
@@ -133,7 +133,7 @@ export function validateMeadow(buffer) {
   near(deck.max[1], 1, 'Bridge deck height');
   near(crown.max[1], 3.6, 'Ruin crown height');
 
-  function route(name, count, rise, target) {
+  function route(name, count, rise, targetHeight, target) {
     const steps = nodes.filter((n) => n.extras.route === name).sort((a, b) => a.extras.step - b.extras.step);
     assert.equal(steps.length, count);
     let previous = 0;
@@ -161,19 +161,19 @@ export function validateMeadow(buffer) {
       }
       previous = step.max[1];
     }
-    near(previous, target.max[1], 'Route meets destination height');
+    near(previous, targetHeight, 'Route meets destination height');
     if (name === 'ruin') near(steps.at(-1).min[2], target.max[2], 'Ruin steps meet crown');
   }
-  route('bridge--1', 4, 0.25, deck);
-  route('bridge-1', 4, 0.25, deck);
-  route('ruin', 12, 0.3, crown);
+  route('bridge--1', 4, 0.14, 0.56);
+  route('bridge-1', 4, 0.14, 0.56);
+  route('ruin', 12, 0.3, crown.max[1], crown);
   const treeCount = nodes.filter((n) => n.extras.role === 'tree-trunk').length;
-  assert.ok(treeCount >= 20 && treeCount <= 30);
+  assert.ok(treeCount >= 70 && treeCount <= 85);
   for (const kind of ['white', 'yellow']) assert.ok(nodes.some((n) => n.extras.role === 'flowers' && n.extras.kind === kind));
   for (const role of ['fence', 'rock', 'ruin', 'bridge-structure']) assert.ok(nodes.some((n) => n.extras.role === role));
   return {
     triangles, backdropTriangles, meshes: nodes.length, bytes: buffer.length,
-    trees: treeCount, playableMeters: '160 x 160', emptyCenterRadiusMeters: 10,
+    trees: treeCount, playableMeters: '240 x 240', emptyCenterRadiusMeters: 10,
     riverWidthMeters: 4, bridgeDeckMeters: 1, maxStepRiseMeters: 0.3,
     materials: 1, textures: 0, animations: 0, embeddedLights: 0, transparency: false,
   };

@@ -17,22 +17,22 @@ function generate() {
 test('saved standalone GLB meets geometric and technical constraints', async () => {
   const buffer = await readFile(new URL('../../public/models/fantasy-meadow.glb', import.meta.url));
   const report = validateMeadow(buffer);
-  assert.ok(report.triangles < 60000);
-  assert.equal(report.playableMeters, '160 x 160');
+  assert.ok(report.triangles < 90000);
+  assert.equal(report.playableMeters, '240 x 240');
   assert.equal(report.emptyCenterRadiusMeters, 10);
   assert.equal(report.riverWidthMeters, 4);
   assert.equal(report.bridgeDeckMeters, 1);
   assert.equal(report.maxStepRiseMeters, 0.3);
 });
 
-test('terrain uses the 128-segment browser budget at expanded world size', () => {
-  assert.equal(TERRAIN_SEGMENTS, 128);
-  assert.equal(TERRAIN_SAMPLES ** 2, 16641);
+test('terrain uses the 160-segment browser budget at expanded world size', () => {
+  assert.equal(TERRAIN_SEGMENTS, 160);
+  assert.equal(TERRAIN_SAMPLES ** 2, 25921);
   const scene = buildMeadow();
   try {
     const terrain = scene.meshes.find((mesh) => mesh.extras.role === 'terrain');
     assert.ok(terrain);
-    assert.equal(terrain.geometry.getAttribute('position').count / 3, 32768);
+    assert.equal(terrain.geometry.getAttribute('position').count / 3, 51200);
   } finally {
     for (const mesh of scene.meshes) mesh.geometry.dispose();
   }
@@ -45,8 +45,26 @@ test('terrain has visible rolling relief while preserving the spawn plaza', () =
   assert.ok(Math.max(...hillHeights) - groundHeight(0, 8) > 2.5);
 });
 
+test('backdrop has a layered mountain horizon outside the playable and collision area', () => {
+  const scene = buildMeadow();
+  try {
+    const peaks = scene.meshes.filter((mesh) => /^Backdrop mountain \d+$/.test(mesh.name));
+    const foothills = scene.meshes.filter((mesh) => /^Backdrop foothill \d+$/.test(mesh.name));
+    assert.equal(peaks.length, 12);
+    assert.equal(foothills.length, 18);
+    for (const mesh of [...peaks, ...foothills]) {
+      assert.equal(mesh.extras.role, 'backdrop');
+      assert.equal(mesh.extras.visualOnly, true);
+      mesh.geometry.computeBoundingSphere();
+      assert.ok(Math.hypot(mesh.geometry.boundingSphere.center.x, mesh.geometry.boundingSphere.center.z) > 100);
+    }
+  } finally {
+    for (const mesh of scene.meshes) mesh.geometry.dispose();
+  }
+});
+
 test('paths reach the expanded edges and the relocated bridge', () => {
-  for (const [x, z] of [[-80, 7], [5, -80], [68, 68], [80, -5], [30, 30]]) {
+  for (const [x, z] of [[-120, 7], [5, -120], [110, 110], [120, -5], [30, 30]]) {
     assert.ok(pathDistance(x, z) < 0.01, `Missing path at ${x}, ${z}`);
   }
 });
@@ -134,7 +152,7 @@ test('collision manifest: grid matches terrain samples, spawn is flat, and heigh
   assert.ok(Math.abs(step - (SPEC.playableHalf * 2) / TERRAIN_SEGMENTS) < 1e-9);
   const centerIndex = ((0 - min) / step) * size + (0 - min) / step;
   assert.equal(Math.abs(heights[centerIndex]), 0);
-  for (const h of heights) assert.ok(Math.abs(h) <= 3, `height out of range: ${h}`);
+  for (const h of heights) assert.ok(Math.abs(h) <= 4.5, `height out of range: ${h}`);
 });
 
 test('terrain stays within the 12-degree traversal slope target', () => {
@@ -153,7 +171,7 @@ test('terrain stays within the 12-degree traversal slope target', () => {
 
 test('collision manifest: boxes stay inside the expanded edge walls', async () => {
   const manifest = await loadManifest();
-  const LIMIT = 81 + 1e-6;
+  const LIMIT = SPEC.playableHalf + 1 + 1e-6;
   for (const b of manifest.boxes) {
     assert.ok(Math.abs(b.minX) <= LIMIT && Math.abs(b.maxX) <= LIMIT, `box exceeds +/-81 in X: ${JSON.stringify(b)}`);
     assert.ok(Math.abs(b.minZ) <= LIMIT && Math.abs(b.maxZ) <= LIMIT, `box exceeds +/-81 in Z: ${JSON.stringify(b)}`);
@@ -162,10 +180,10 @@ test('collision manifest: boxes stay inside the expanded edge walls', async () =
     && Math.abs(b.maxY - b.minY - 3) < 1e-6;
   const findWall = (axis, center) => manifest.boxes.find((b) => isWallOnAxis(b, axis)
     && Math.abs((b[`min${axis}`] + b[`max${axis}`]) / 2 - center) < 1e-6);
-  const north = findWall('Z', 80);
-  const south = findWall('Z', -80);
-  const east = findWall('X', 80);
-  const west = findWall('X', -80);
+  const north = findWall('Z', SPEC.playableHalf);
+  const south = findWall('Z', -SPEC.playableHalf);
+  const east = findWall('X', SPEC.playableHalf);
+  const west = findWall('X', -SPEC.playableHalf);
   for (const wall of [north, south, east, west]) {
     assert.ok(wall, 'missing border wall');
     assert.equal(wall.minY, 0);
@@ -187,10 +205,14 @@ test('collision manifest: bridge route is climbable (max 0.3m rise per 0.4m step
     const [x, z] = bridgePoint(v, 0);
     const support = supportAt(x, z);
     if (previous !== null) {
-      assert.ok(support - previous <= 0.3 + 1e-6, `rise too steep at v=${v.toFixed(2)}: ${previous} -> ${support}`);
+      assert.ok(Math.abs(support - previous) <= 0.3 + 1e-6, `bridge height changes too sharply at v=${v.toFixed(2)}: ${previous} -> ${support}`);
     }
     previous = support;
   }
+  const [endX, endZ] = bridgePoint(3.2);
+  const [middleX, middleZ] = bridgePoint(0);
+  assert.ok(Math.abs(supportAt(endX, endZ) - SPEC.bridgeEndHeight) < 0.05);
+  assert.ok(Math.abs(supportAt(middleX, middleZ) - SPEC.bridgeHeight) < 0.01);
 });
 
 test('collision manifest: ruin route climbs in 0.3m steps to a crown that touches the last step', async () => {

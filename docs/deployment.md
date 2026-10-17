@@ -2,10 +2,10 @@
 
 ## Current features
 
-- A 160 x 160 m rolling meadow with village, park pond, activity meadow, stable,
+- A 240 x 240 m rolling meadow with village, park pond, activity meadow, stable,
   forest, countryside, terrain collision, climbable bridge/ruins, and river wading.
-- One Minion-style default avatar in six outfit colors, animated with a
-  lightweight built-in walk, run, and jump gait. No character model downloads.
+- Seven medieval character choices with walk/run and jump animations, shared
+  across the existing multiplayer room.
 - Proximity text chat with chat bubbles, message length/rate limits, and a
   player roster with block/unblock. Blocking also removes existing messages
   and bubbles from that player.

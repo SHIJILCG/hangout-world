@@ -14,7 +14,7 @@ export class WorldFullError extends Error {
 }
 
 // Index positions must stay stable — the server stores only the index.
-export const AVATAR_COLORS = [0x4f8ef7, 0xf25f5c, 0x59cd90, 0xffe066, 0x9b5de5, 0xf58a4b];
+export const AVATAR_COLORS = [0x4f8ef7, 0xf25f5c, 0x59cd90, 0xffe066, 0x9b5de5, 0xf58a4b, 0x6473b8];
 
 export function serverUrl(): string {
   // Deployed builds bake the game-server endpoint in at build time

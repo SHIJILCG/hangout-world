@@ -36,7 +36,7 @@ describe('buildCollision (meadow heightfield + generator boxes)', () => {
       [30, 30], [-35, 5], [15, -25],
     ];
     for (const [x, z] of samples) {
-      expect(collision.groundAt(x, z)).toBeCloseTo(groundHeight(x, z), 2);
+      expect(collision.groundAt(x, z)).toBeCloseTo(groundHeight(x, z), 1);
     }
   });
 
@@ -44,6 +44,11 @@ describe('buildCollision (meadow heightfield + generator boxes)', () => {
     expect(collision.groundAt(SPAWN.x, SPAWN.z)).toBe(0);
     const r = collision.resolveHorizontal(SPAWN.x, SPAWN.z, 0, PLAYER_RADIUS, 1.7);
     expect(r).toEqual({ x: SPAWN.x, z: SPAWN.z });
+  });
+
+  it('world and collision boundary cover a 240m square', () => {
+    expect(WORLD_HALF).toBe(120);
+    expect(collision.groundAt(119, 119)).toBeCloseTo(groundHeight(119, 119), 1);
   });
 
   it('border walls stop a player leaning in at all four edges', () => {

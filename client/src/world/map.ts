@@ -4,7 +4,7 @@ import { CollisionWorld, type Box, type HeightGrid } from './collision';
 import { addEnvironmentAssets } from './environmentAssets';
 import manifestJson from './meadow-collision.json';
 
-export const WORLD_HALF = 80; // must match server (160 x 160m)
+export const WORLD_HALF = 120; // must match server (240 x 240m)
 // Ten deterministic pads around the central social plaza. The first entry is
 // retained as SPAWN for the single-player/client contract.
 export const SPAWN_POINTS = [
@@ -51,8 +51,20 @@ export async function buildMap(): Promise<WorldMap> {
   gltf.scene.traverse((obj) => {
     if (!(obj instanceof THREE.Mesh)) return;
     const role = obj.userData.role;
+    const displayName = obj.name.replaceAll('_', ' ');
+    const replacedHousePart = displayName.endsWith(' walls')
+      || displayName.endsWith(' roof')
+      || (displayName.startsWith('Village ') && displayName.endsWith(' door'));
+    if (replacedHousePart) {
+      obj.visible = false;
+      return;
+    }
     const generatedBridge = typeof role === 'string' && role.startsWith('bridge-');
-    if (role === 'tree-trunk' || role === 'tree-canopy' || role === 'flowers' || generatedBridge) {
+    // The wooden bridge replaces the generated deck and rails, but its
+    // generated stone steps are the visible transition down to the terrain.
+    // Keep the meadow's native trees and wildflowers alongside the denser
+    // decorative asset plantings.
+    if (generatedBridge && role !== 'bridge-step') {
       obj.visible = false;
       return;
     }
@@ -66,11 +78,11 @@ export async function buildMap(): Promise<WorldMap> {
   const sun = new THREE.DirectionalLight(0xfff0d5, 2);
   sun.position.set(-32, 60, 25);
   sun.castShadow = true;
-  sun.shadow.camera.left = -85;
-  sun.shadow.camera.right = 85;
-  sun.shadow.camera.top = 85;
-  sun.shadow.camera.bottom = -85;
-  sun.shadow.camera.far = 210;
+  sun.shadow.camera.left = -125;
+  sun.shadow.camera.right = 125;
+  sun.shadow.camera.top = 125;
+  sun.shadow.camera.bottom = -125;
+  sun.shadow.camera.far = 320;
   sun.shadow.normalBias = 0.06;
   sun.shadow.mapSize.set(2048, 2048);
   group.add(sun);

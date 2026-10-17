@@ -5,6 +5,8 @@ import {
   WALK_SPEED, RUN_SPEED, JUMP_SPEED, GRAVITY,
   type MoveInput,
 } from '../src/player/controller';
+import { buildCollision } from '../src/world/map';
+import { bridgePoint } from '../scripts/meadow/scene.mjs';
 
 const flat = new CollisionWorld([]);
 const DT = 1 / 60;
@@ -37,6 +39,31 @@ describe('walking and running', () => {
     const heading = s.heading;
     s = simulate(flat, idle, 5, s);
     expect(s.heading).toBe(heading);
+  });
+});
+
+describe('bridge traversal', () => {
+  it('walks over both bank approaches and the curved deck without falling through', () => {
+    const world = buildCollision();
+    for (const startV of [-8, 8]) {
+      const [x, z] = bridgePoint(startV);
+      const direction = startV < 0 ? 1 : -1;
+      let state = createPlayerState(x, world.groundAt(x, z), z);
+      let peakY = state.y;
+      let airFrames = 0;
+      let maxAirFrames = 0;
+      let airLocation = '';
+      for (let i = 0; i < 240; i++) {
+        state = updatePlayer(state, { ...idle, dirX: direction, dirZ: direction }, DT, world);
+        if (!state.onGround && airFrames === 0) airLocation = `frame=${i} x=${state.x.toFixed(2)} y=${state.y.toFixed(2)} z=${state.z.toFixed(2)} support=${world.supportHeightAt(state.x, state.z, state.y, 0.4).toFixed(2)}`;
+        airFrames = state.onGround ? 0 : airFrames + 1;
+        maxAirFrames = Math.max(maxAirFrames, airFrames);
+        peakY = Math.max(peakY, state.y);
+      }
+      expect(maxAirFrames, `start=${startV}; ${airLocation}`).toBeLessThanOrEqual(2);
+      expect(peakY).toBeGreaterThan(0.95);
+      expect(state.y).toBeCloseTo(world.groundAt(state.x, state.z), 2);
+    }
   });
 });
 

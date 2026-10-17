@@ -10,11 +10,13 @@ const round3 = (n) => Math.round(n * 1000) / 1000;
 const SKIP_ROLES = new Set([
   'flowers', 'river', 'river-detail', 'pond', 'pond-shore', 'tree-canopy',
   'terrain', 'backdrop', 'building-roof', 'furniture', 'activity', 'countryside-detail',
+  // The authored wooden bridge replaces these generated meshes; retaining
+  // their broad AABB blockers would trap players behind invisible rails.
+  'bridge-parapet', 'bridge-structure',
 ]);
 // WHOLE-MESH AABB blockers.
 const BLOCKER_ROLES = new Set([
   'fence', 'rock', 'ruin', 'ruin-rubble', 'tree-trunk', 'building',
-  'bridge-parapet', 'bridge-structure',
 ]);
 // WALKABLE axis-aligned: whole-mesh AABB in X/Z, but forced Y range.
 // 'ruin-step' piles genuinely start at ground level, so minY is forced to 0
@@ -92,7 +94,15 @@ function cellsFromCorners(vRanges, uRanges, minY, maxY) {
 }
 
 function bridgeDeckBoxes() {
-  return cellsFromCorners(span(-3.2, 3.2, 0.5), span(-1.6, 1.6, 0.5), 0.6, 1.0);
+  const boxes = [];
+  const deckTopAt = (v) => SPEC.bridgeEndHeight
+    + (SPEC.bridgeHeight - SPEC.bridgeEndHeight) * (1 - (v / 3.2) ** 2);
+  for (let v0 = -3.2; v0 < 3.2 - 1e-6; v0 += 0.2) {
+    const v1 = Math.min(3.2, v0 + 0.2);
+    const top = deckTopAt((v0 + v1) / 2);
+    boxes.push(...cellsFromCorners([[v0, v1]], span(-1.6, 1.6, 0.5), Math.max(0, top - 0.22), top));
+  }
+  return boxes;
 }
 
 function bridgeStepBoxes(mesh) {

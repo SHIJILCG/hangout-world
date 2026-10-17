@@ -10,19 +10,23 @@ Built for desktop browsers with **Three.js, TypeScript, Vite, and Colyseus**.
 
 - **A shared world for up to 20 players** with smooth remote-player movement,
   automatic full-room retries, and recovery from brief connection drops.
-- **A 160 x 160 meter rolling meadow** with a connected medieval village/social centre,
+- **A 240 x 240 meter rolling meadow** with a connected medieval village/social centre,
   park pond, activity meadow, stable/paddock, forest, countryside, winding
   curved paths, a river, a walkable stone bridge, and climbable ruins.
   Snowy mountains, a castle, and a lake form the distant backdrop.
-- **One Minion-style default avatar** in six outfit colors, animated with a
-  lightweight built-in walk, run, and jump gait. No character model downloads.
+- **Seven medieval character choices** with walk/run and jump animations,
+  synced across players while preserving the existing movement and room protocol.
 - **Proximity text chat and WebRTC voice:** messages and voice reach only nearby players; voice is opt-in, has mute controls, and uses distance-based volume.
   Bubbles wrap long messages and stay a consistent screen size as the camera
   moves; the chat panel shows the full message.
 - **Player blocking** that hides a player's messages and bubbles, including
   messages already on screen. Preferences are saved locally.
-- **A reproducible environment asset**: one vertex-colored GLB under 60,000
+- **A reproducible environment asset**: one vertex-colored GLB under 90,000
   triangles, generated alongside the game's collision manifest.
+
+The world uses the six environment models in `client/public/environment-demo-prototype/`
+and `client/public/environment-prototype/`. Character models and their license
+credits are in `client/public/characters/`.
 
 Voice uses browser WebRTC with STUN by default. Production deployments should
 configure a TURN relay on the game server for restrictive networks.

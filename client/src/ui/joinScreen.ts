@@ -1,5 +1,7 @@
 import { AVATAR_COLORS, WorldFullError } from '../net/connection';
 
+const CHARACTER_OPTIONS = ['Adventurer (M)', 'Adventurer (F)', 'Farmer', 'King', 'Hooded Adventurer', 'Villager', 'Witch'] as const;
+
 const CSS = `
 #join-screen { position: fixed; inset: 0; display: flex; align-items: center;
   justify-content: center; background: radial-gradient(ellipse at 25% 20%, #6c9d78, transparent 60%), linear-gradient(150deg, #a6d8db, #547a5f 55%, #203d35); z-index: 10;
@@ -12,10 +14,10 @@ const CSS = `
 #join-card small { color: #d7d995; text-transform: uppercase; letter-spacing: 2px; }
 #join-name { padding: 10px; font-size: 16px; border: 1px solid #cbd5e1;
   border-radius: 8px; background: #f9f6e9; color: #203d35; }
-#join-swatches { display: flex; gap: 10px; }
-.join-swatch { width: 34px; height: 34px; border-radius: 50%; border: 3px solid
-  transparent; cursor: pointer; }
-.join-swatch.selected { border-color: #fff5da; outline: 2px solid #7b9777; outline-offset: 3px; }
+#join-swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.join-swatch { min-width: 0; min-height: 40px; padding: 4px; border-radius: 9px; border: 2px solid
+  #708b6a; background: #35584a; color: #fff5da; font-size: 12px; font-weight: 600; cursor: pointer; }
+.join-swatch.selected { border-color: #fff5da; background: #67864c; outline: 2px solid #7b9777; outline-offset: 1px; }
 #join-btn { padding: 12px; font-size: 16px; font-weight: 600; color: #fff;
   background: #67864c; border: 1px solid #9fb976; border-radius: 8px; cursor: pointer; }
 #join-btn:disabled { opacity: 0.6; cursor: wait; }
@@ -38,8 +40,8 @@ export function showJoinScreen(
       <p>Wander the meadow, climb the old ruins, and meet someone new.</p>
       <label for="join-name">Your nickname</label>
       <input id="join-name" maxlength="16" placeholder="Your nickname" autocomplete="nickname" />
-      <span>Choose your overalls color</span>
-      <div id="join-swatches" role="group" aria-label="Explorer color"></div>
+      <span>Choose your character</span>
+      <div id="join-swatches" role="group" aria-label="Player character"></div>
       <p>Press Enter in the world to chat with other explorers.</p>
       <p id="join-error" role="alert"></p>
       <button id="join-btn">Enter world</button>
@@ -49,14 +51,14 @@ export function showJoinScreen(
 
   const swatchRow = overlay.querySelector('#join-swatches')!;
   let colorIndex = 0;
-  AVATAR_COLORS.forEach((color, i) => {
+  AVATAR_COLORS.forEach((_color, i) => {
     const b = document.createElement('button');
     b.className = 'join-swatch' + (i === 0 ? ' selected' : '');
     b.dataset.index = String(i);
     b.type = 'button';
-    b.setAttribute('aria-label', `${['Blue', 'Coral', 'Mint', 'Yellow', 'Purple', 'Orange'][i]} overalls`);
+    b.textContent = CHARACTER_OPTIONS[i] ?? CHARACTER_OPTIONS[0];
+    b.setAttribute('aria-label', CHARACTER_OPTIONS[i] ?? CHARACTER_OPTIONS[0]);
     b.setAttribute('aria-pressed', String(i === 0));
-    b.style.background = '#' + color.toString(16).padStart(6, '0');
     b.addEventListener('click', () => {
       colorIndex = i;
       swatchRow.querySelectorAll('.join-swatch').forEach((s, j) => {

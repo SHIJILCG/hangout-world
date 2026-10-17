@@ -1,71 +1,40 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { animationPose } from '../src/player/animation';
-import { animateAvatar, createAvatar, disposeAvatar } from '../src/player/avatar';
-import { PLAYER_HEIGHT, PLAYER_RADIUS } from '../src/player/controller';
+import { animateAvatar, avatarModelPath, createAvatar, disposeAvatar } from '../src/player/avatar';
 
-describe('explorer animations', () => {
-  it('has idle, opposite walking limbs, faster running, and a distinct jump pose', () => {
-    expect(animationPose(0.4, 0, true).leftLeg).toBeCloseTo(0);
-    const walk = animationPose(0.4, 4, true);
-    expect(walk.leftLeg).toBeCloseTo(-walk.rightLeg);
-    expect(walk.leftArm).toBeCloseTo(-walk.leftLeg);
-    expect(animationPose(0.4, 8, true)).not.toEqual(walk);
-    expect(animationPose(0.4, 4, false).leftArm).toBe(-0.8);
+describe('player animation', () => {
+  it('maps the existing network character indexes to the six licensed model files', () => {
+    expect(Array.from({ length: 7 }, (_, index) => avatarModelPath(index))).toEqual([
+      '/characters/Adventurer_Male.glb',
+      '/characters/Adventurer_Female.glb',
+      '/characters/Farmer.glb',
+      '/characters/King.glb',
+      '/characters/Hooded_Adventurer.glb',
+      '/characters/Villager_Woman.glb',
+      '/characters/Witch.glb',
+    ]);
+    expect(avatarModelPath(99)).toBe('/characters/Adventurer_Male.glb');
   });
 
-  it('keeps the animated root at the feet without a speaking indicator', () => {
+  it('creates a feet-origin character root and leaves physics placement untouched', () => {
     const avatar = createAvatar();
     avatar.position.set(1, 2, 3);
     animateAvatar(avatar, 1, 8, false, 1 / 60);
+    expect(avatar.name).toBe('medieval-avatar');
     expect(avatar.position.toArray()).toEqual([1, 2, 3]);
-    expect(avatar.getObjectByName('speaking-indicator')).toBeUndefined();
+    expect(avatar.children).toHaveLength(0);
     disposeAvatar(avatar);
   });
 
-  it('uses rounded low-poly shapes within the existing standing collision bounds', () => {
-    const avatar = createAvatar(0xf07865);
-    const bounds = new THREE.Box3().setFromObject(avatar);
-    expect(bounds.min.y).toBeCloseTo(0, 5);
-    expect(bounds.max.y).toBeLessThanOrEqual(PLAYER_HEIGHT);
-    expect(Math.max(Math.abs(bounds.min.x), bounds.max.x)).toBeLessThanOrEqual(PLAYER_RADIUS);
-    expect(Math.max(Math.abs(bounds.min.z), bounds.max.z)).toBeLessThanOrEqual(PLAYER_RADIUS);
-    let triangles = 0;
-    avatar.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-      expect(object.geometry).not.toBeInstanceOf(THREE.BoxGeometry);
-      triangles += (object.geometry.index?.count ?? object.geometry.attributes.position.count) / 3;
-      if (object.material instanceof THREE.MeshStandardMaterial) {
-        expect(object.material.flatShading).toBe(true);
-      }
-    });
-    expect(triangles).toBeLessThan(3000);
-    const overalls = avatar.getObjectByName('overalls');
-    expect(overalls).toBeInstanceOf(THREE.Mesh);
-    if (overalls instanceof THREE.Mesh && overalls.material instanceof THREE.MeshStandardMaterial) {
-      expect(overalls.material.color.getHex()).toBe(0xf07865);
-    }
-    expect(avatar.getObjectByName('single-eye')).toBeInstanceOf(THREE.Mesh);
-    expect(avatar.getObjectByName('yellow-body')).toBeInstanceOf(THREE.Mesh);
-    disposeAvatar(avatar);
-  });
-
-  it('keeps the rounded limbs attached to the animated rig', () => {
+  it('disposes model geometry and materials when a player leaves', () => {
     const avatar = createAvatar();
-    const leftArm = avatar.getObjectByName('leftArm')!;
-    const rightArm = avatar.getObjectByName('rightArm')!;
-    const leftLeg = avatar.getObjectByName('leftLeg')!;
-    const rightLeg = avatar.getObjectByName('rightLeg')!;
-    const shoulder = leftArm.position.clone();
-    animateAvatar(avatar, 0.4, 4, true, 1);
-    expect(Math.abs(leftArm.rotation.x)).toBeGreaterThan(0.1);
-    expect(leftArm.rotation.x).toBeCloseTo(-rightArm.rotation.x);
-    expect(leftLeg.rotation.x).toBeCloseTo(-rightLeg.rotation.x);
-    expect(leftArm.position.equals(shoulder)).toBe(true);
-    animateAvatar(avatar, 0.4, 4, false, 1);
-    expect(leftArm.rotation.x).toBeCloseTo(-0.8);
-    expect(rightArm.rotation.x).toBeCloseTo(-0.8);
-    expect(avatar.position.toArray()).toEqual([0, 0, 0]);
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshStandardMaterial();
+    const disposeGeometry = vi.spyOn(geometry, 'dispose');
+    const disposeMaterial = vi.spyOn(material, 'dispose');
+    avatar.add(new THREE.Mesh(geometry, material));
     disposeAvatar(avatar);
+    expect(disposeGeometry).toHaveBeenCalledOnce();
+    expect(disposeMaterial).toHaveBeenCalledOnce();
   });
 });

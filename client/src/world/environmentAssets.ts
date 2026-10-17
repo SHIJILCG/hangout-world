@@ -9,24 +9,42 @@ const ASSETS = {
   riverRock: '/environment-demo-prototype/PT_River_Rock_Pile_02.glb',
   shrub: '/environment-prototype/PT_Generic_Shrub_01_green.glb',
   grass: '/environment-prototype/PT_Grass_01.glb',
+  appleTree: '/environment-library/apple_tree.glb',
+  gnarledTree: '/environment-library/gnarled_tree.glb',
+  ruinedWall: '/environment-library/stone_arch.glb',
+  flagstones: '/environment-library/flagstone_patch.glb',
+  stoneCottage: '/environment-library/stone_cottage.glb',
 } as const;
 
 type AssetName = keyof typeof ASSETS;
+
+const FLAT_COLORED_ASSETS = new Set<AssetName>([
+  'pine', 'bridge', 'fence', 'riverRock', 'shrub', 'grass',
+]);
 
 interface Placement {
   x: number;
   z: number;
   scale: number;
+  scaleY?: number;
   rotation: number;
   yOffset?: number;
 }
 
 const TREE_SPOTS: readonly [number, number][] = [
-  [-52, -48], [-53, -34], [-36, -35], [-51, -18],
-  [-34, -23], [-51, -4], [-36, 5], [-43, 24], [-52, 34],
-  [-31, 43], [-10, 22], [-12, -18], [12, -18], [51, 30],
-  [-69, -52], [-68, 13], [-57, 68], [-30, -68], [24, -70],
-  [62, -60], [70, -29], [68, 45], [47, 70], [-70, 48],
+  [-70, -62], [-61, -47], [-68, -30], [-65, -10],
+  [-70, 12], [-66, 34], [-61, 53], [-48, 68],
+  [-29, -68], [-8, -70], [14, -67], [37, -68],
+  [58, -64], [71, -45], [69, -21], [72, 2],
+  [68, 24], [61, 46], [43, 69], [20, 71],
+  [-3, 71], [-25, 68], [-49, 65], [49, 57],
+  [-108, -91], [-89, -108], [-61, -111], [-31, -109], [0, -111], [31, -109], [61, -111], [91, -104], [109, -83],
+  [111, -54], [109, -25], [111, 6], [109, 37], [110, 68], [101, 95], [82, 110], [52, 111], [21, 109], [-10, 111],
+  [-41, 109], [-72, 108], [-99, 94], [-111, 64], [-109, 33], [-111, 2], [-109, -29], [-110, -60],
+  [-94, -71], [-81, -44], [-98, -13], [-83, 24], [-93, 57], [-72, 84],
+  [-55, 94], [-25, 99], [6, 92], [36, 100], [68, 91], [96, 82],
+  [101, 54], [91, 25], [99, -5], [89, -35], [96, -66], [75, -91],
+  [49, -97], [18, -99], [-12, -92], [-42, -98], [-71, -90], [-93, -91],
 ];
 
 const GRASS_PATCH_CENTERS: readonly [number, number][] = [
@@ -39,6 +57,19 @@ const GRASS_PATCH_CENTERS: readonly [number, number][] = [
   [-43, 67], [-23, 70], [2, -70], [26, -68], [47, -70],
   [67, -53], [72, -36], [70, -8], [68, 17], [66, 60],
   [46, 69], [25, 72], [2, 69], [-25, 68], [-49, 67],
+  [-106, -100], [-90, -96], [-74, -108], [-52, -97], [-31, -106], [-10, -95], [12, -108], [34, -97], [57, -106], [78, -95], [100, -106],
+  [107, -80], [95, -62], [108, -42], [96, -21], [107, 1], [95, 22], [109, 43], [96, 64], [108, 85], [88, 103],
+  [65, 96], [45, 108], [23, 95], [1, 108], [-21, 96], [-43, 108], [-65, 96], [-86, 108], [-105, 84], [-96, 61],
+  [-108, 39], [-96, 17], [-108, -5], [-96, -27], [-108, -49], [-96, -71],
+  [-92, -82], [-78, -67], [-85, -49], [-96, -35], [-82, -13], [-97, 7], [-82, 28], [-98, 48], [-82, 72], [-66, 88],
+  [-45, 79], [-27, 91], [-5, 82], [17, 92], [39, 80], [61, 91], [82, 77], [97, 91],
+  [84, 55], [100, 36], [84, 13], [99, -9], [82, -30], [99, -51], [81, -71], [60, -88],
+  [38, -76], [16, -91], [-6, -77], [-29, -92], [-51, -77], [-72, -94],
+  [-72, -63], [-59, -58], [-42, -62], [-24, -64], [-5, -66], [17, -64], [38, -62], [57, -58], [72, -64],
+  [-72, -40], [-66, -25], [-64, -7], [-68, 12], [-65, 31], [-62, 49], [-55, 61], [-40, 59], [-20, 63],
+  [1, 64], [23, 64], [44, 63], [62, 56], [71, 42], [63, 28], [67, 8], [62, -13], [60, -33],
+  [-48, -55], [-31, -48], [-13, -55], [8, -53], [30, -51], [49, -47], [-44, 54], [-26, 56], [-5, 52],
+  [16, 55], [36, 53], [54, 48], [-58, 2], [-56, 21], [55, 8], [56, 27], [-28, -30], [8, 31], [42, 37],
 ];
 
 const STUDY_ROADS: readonly (readonly [number, number][])[] = [
@@ -47,6 +78,10 @@ const STUDY_ROADS: readonly (readonly [number, number][])[] = [
   [[-17, 15], [-10, 20], [2, 21], [14, 19], [21, 12]],
   [[13, -9], [20, -14], [27, -21], [30, -29], [24, -38], [18, -47]],
   [[-48, -35], [-39, -23], [-34, -8], [-32, 12], [-37, 32], [-46, 48]],
+  [[-120, 7], [-100, 7], [-78, 7], [-55, 7]],
+  [[5, -55], [5, -78], [5, -100], [5, -120]],
+  [[57, 57], [78, 78], [100, 100], [120, 120]],
+  [[55, -8], [78, -5], [100, -5], [120, -5]],
 ];
 
 function distanceToSegment(
@@ -72,13 +107,14 @@ function grassPlacements(): Placement[] {
   };
   const placements: Placement[] = [];
   for (const [cx, cz] of GRASS_PATCH_CENTERS) {
-    const wanted = cx > 5 && cz > 10 && cz < 45 ? 12 : 20;
-    for (let attempt = 0; attempt < wanted * 4 && placements.length < 320; attempt++) {
+    const wanted = cx > 5 && cz > 10 && cz < 45 ? 18 : 34;
+    let localCount = 0;
+    for (let attempt = 0; attempt < wanted * 6 && placements.length < 6000; attempt++) {
       const angle = random() * Math.PI * 2;
-      const radius = Math.sqrt(random()) * (1.8 + random() * 1.6);
+      const radius = Math.sqrt(random()) * (2.6 + random() * 2.4);
       const x = cx + Math.cos(angle) * radius;
       const z = cz + Math.sin(angle) * radius;
-      if (Math.abs(x) > 76 || Math.abs(z) > 76) continue;
+      if (Math.abs(x) > 116 || Math.abs(z) > 116) continue;
       if (Math.hypot(x, z - 5) < 12) continue;
       if (Math.hypot((x - 26) / 12, (z + 23) / 8) < 1.12) continue;
       const roadDistance = Math.min(...STUDY_ROADS.flatMap((road) =>
@@ -93,7 +129,8 @@ function grassPlacements(): Placement[] {
         scale: 1.05 + random() * 0.4,
         yOffset: 0.035,
       });
-      if (placements.filter((placement) => Math.hypot(placement.x - cx, placement.z - cz) < 6).length >= wanted) break;
+      localCount++;
+      if (localCount >= wanted) break;
     }
   }
   return placements;
@@ -160,7 +197,7 @@ function addInstances(
         placement.z,
       );
       rotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), placement.rotation);
-      scale.setScalar(placement.scale);
+      scale.set(placement.scale, placement.scaleY ?? placement.scale, placement.scale);
       matrix.compose(position, rotation, scale);
       instances.setMatrixAt(index, matrix);
     });
@@ -178,7 +215,7 @@ export async function addEnvironmentAssets(
     Object.entries(ASSETS).map(async ([name, url]) => {
       const gltf = await loader.loadAsync(url);
       const assetName = name as AssetName;
-      replaceMaterials(gltf.scene, assetName);
+      if (FLAT_COLORED_ASSETS.has(assetName)) replaceMaterials(gltf.scene, assetName);
       return [assetName, gltf.scene] as const;
     }),
   );
@@ -192,6 +229,29 @@ export async function addEnvironmentAssets(
     yOffset: 0.52 * (0.88 + (index % 5) * 0.055),
   }));
   addInstances(target, collision, assets.pine, treePlacements, 'instanced Polytope pines');
+  addInstances(target, collision, assets.appleTree, [
+    { x: 7, z: -49, scale: 1.05, rotation: 0.4 },
+    { x: 16, z: -53, scale: 0.94, rotation: 2.1 },
+    { x: 23, z: -49, scale: 1.08, rotation: 4.2 },
+  ], 'three-low-poly orchard trees');
+  addInstances(target, collision, assets.gnarledTree, [
+    { x: -31, z: -19, scale: 1.15, rotation: 0.5 },
+  ], 'three-low-poly gnarled ruin tree');
+  addInstances(target, collision, assets.ruinedWall, [
+    { x: -28, z: -16, scale: 0.92, rotation: -0.18 },
+    { x: -8, z: -18, scale: 0.78, rotation: 0.28 },
+  ], 'three-low-poly ruin walls');
+  addInstances(target, collision, assets.flagstones, [
+    { x: 13, z: 4, scale: 1, rotation: 0 },
+    { x: 13, z: 12, scale: 1, rotation: 0.04 },
+  ], 'three-low-poly market flagstones');
+  addInstances(target, collision, assets.stoneCottage, [
+    { x: -31, z: 16, scale: 1, rotation: -0.2 },
+    { x: -24, z: 20, scale: 1, rotation: 0.25 },
+    { x: -35, z: 25, scale: 1, rotation: 0.1 },
+    { x: -15, z: 8, scale: 1.05, rotation: 0 },
+    { x: 30, z: -34, scale: 1.18, rotation: 0 },
+  ], 'three-low-poly stone cottages');
   const grass = grassPlacements().flatMap((placement, index) => {
     const angle = (index * 2.399963229728653) % (Math.PI * 2);
     const offsetX = Math.cos(angle) * 0.22;
@@ -207,20 +267,25 @@ export async function addEnvironmentAssets(
   const bridgeRotation = -Math.PI / 4;
   assets.bridge.updateMatrixWorld(true);
   const bridgeBounds = new THREE.Box3().setFromObject(assets.bridge);
-  // Fit the measured GLB to the collision span and seat its lowest beam on the terrain.
+  // Fit the GLB to the collision span. Its plank tops are at y=0.59 in the
+  // source asset; compress the vertical scale so that surface lands at the
+  // generated deck height (1m), keeping player support and visible boards aligned.
   const bridgeScale = 6.4 / (bridgeBounds.max.x - bridgeBounds.min.x);
+  const bridgeDeckSurfaceY = 0.59;
+  const bridgeScaleY = 1 / (bridgeDeckSurfaceY - bridgeBounds.min.y);
   const bridgePivot = bridgeBounds.getCenter(new THREE.Vector3());
   const bridgeOffset = new THREE.Vector3(bridgePivot.x, 0, bridgePivot.z)
     .multiplyScalar(bridgeScale)
     .applyAxisAngle(new THREE.Vector3(0, 1, 0), bridgeRotation);
   const bridgeX = 30 - bridgeOffset.x;
   const bridgeZ = 30 - bridgeOffset.z;
-  const bridgeBaseY = collision.groundAt(30, 30) - bridgeBounds.min.y * bridgeScale;
+  const bridgeBaseY = collision.groundAt(30, 30) - bridgeBounds.min.y * bridgeScaleY;
   addInstances(target, collision, assets.bridge, [
     {
       x: bridgeX,
       z: bridgeZ,
       scale: bridgeScale,
+      scaleY: bridgeScaleY,
       rotation: bridgeRotation,
       yOffset: bridgeBaseY - collision.groundAt(bridgeX, bridgeZ),
     },
@@ -228,10 +293,24 @@ export async function addEnvironmentAssets(
   addInstances(target, collision, assets.riverRock, [
     { x: 28, z: 26, scale: 1.4, rotation: 0.4 },
     { x: 32, z: 34, scale: 1.25, rotation: 1.1 },
+    { x: 82, z: -17, scale: 1.3, rotation: 0.7 },
+    { x: -17, z: 82, scale: 1.35, rotation: 2.1 },
+    { x: -42, z: 98, scale: 1.15, rotation: 1.4 },
+    { x: 98, z: -42, scale: 1.2, rotation: 0.2 },
   ], 'Polytope river rocks');
   addInstances(target, collision, assets.shrub, [
     { x: -15, z: 16, scale: 1.1, rotation: 0.8 },
     { x: 15, z: -21, scale: 1.22, rotation: 1.6 },
+    { x: -88, z: 46, scale: 1.15, rotation: 0.6 },
+    { x: -75, z: 59, scale: 1.25, rotation: 1.1 },
+    { x: -54, z: 85, scale: 1.3, rotation: 2.4 },
+    { x: -18, z: 94, scale: 1.1, rotation: 0.9 },
+    { x: 38, z: 88, scale: 1.2, rotation: 1.5 },
+    { x: 80, z: 68, scale: 1.25, rotation: 2.7 },
+    { x: 75, z: -70, scale: 1.2, rotation: 0.4 },
+    { x: 45, z: -91, scale: 1.3, rotation: 1.8 },
+    { x: -51, z: -88, scale: 1.15, rotation: 2.3 },
+    { x: -88, z: -55, scale: 1.25, rotation: 0.2 },
   ], 'Polytope shrubs');
 
   const fences: Placement[] = Array.from({ length: 5 }, (_, index) => ({
@@ -240,5 +319,11 @@ export async function addEnvironmentAssets(
     scale: 1.5,
     rotation: 0,
   }));
+  fences.push(...Array.from({ length: 10 }, (_, index) => ({
+    x: -94 + index * 4.2,
+    z: 77,
+    scale: 1.35,
+    rotation: 0,
+  })));
   addInstances(target, collision, assets.fence, fences, 'Polytope village fences');
 }

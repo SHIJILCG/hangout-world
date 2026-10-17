@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { getStateCallbacks } from 'colyseus.js';
 import { KeyboardInput } from './input/keyboard';
 import { createPlayerState, updatePlayer, PLAYER_HEIGHT, type MoveInput } from './player/controller';
-import { animateAvatar, createAvatar } from './player/avatar';
+import { animateAvatar, createAvatar, loadAvatar } from './player/avatar';
 import { createNameTag } from './player/nametag';
 import { OrbitCamera } from './camera/orbit';
 import { buildMap, SPAWN } from './world/map';
@@ -60,7 +60,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xd4e8da);
-  scene.fog = new THREE.Fog(0xd4e8da, 100, 290);
+  scene.fog = new THREE.Fog(0xd4e8da, 130, 390);
   scene.add(map.group);
   scene.add(createAtmosphere());
   const hud = document.createElement('aside');
@@ -68,7 +68,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
   hud.innerHTML = '<strong>Meadow Valley</strong><small>WASD move / Shift run / Space jump</small><small>Click world to look / Escape to release / Scroll to zoom</small><small>Enter to chat</small>';
   document.body.append(hud);
 
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 400);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 550);
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -79,6 +79,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
 
   // --- Local player ---
   const avatar = createAvatar(AVATAR_COLORS[colorIndex] ?? AVATAR_COLORS[0]);
+  await loadAvatar(avatar, colorIndex);
   let myTag = createNameTag(name);
   myTag.position.set(0, PLAYER_HEIGHT + 0.45, 0);
   avatar.add(myTag);
