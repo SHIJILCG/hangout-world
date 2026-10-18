@@ -1,3 +1,5 @@
+import world from '../../../shared/world.json' with { type: 'json' };
+import { forestAt } from './biomes.mjs';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { groundHeight, TERRAIN_SEGMENTS } from './terrain.mjs';
@@ -5,12 +7,9 @@ export { groundHeight };
 
 export const SPEC = Object.freeze({
   seed: 728194,
-  playableHalf: 120,
+  playableHalf: world.half,
   emptyRadius: 10,
-  spawnPoints: [
-    [0, 8], [1.9, 8], [1.55, 6.8], [0.6, 5.8], [-0.6, 5.8],
-    [-1.55, 6.8], [-1.9, 8], [-1.55, 9.2], [-0.6, 9.5], [0.6, 9.2],
-  ],
+  spawnPoints: world.spawnPoints.map(p=>[p.x,p.z]),
   zones: ['village', 'park', 'activity-meadow', 'stable', 'ruins', 'forest', 'countryside'],
   riverWidth: 4,
   bridgeCenter: 30,
@@ -18,7 +17,7 @@ export const SPEC = Object.freeze({
   bridgeEndHeight: 0.56,
   bridgeRise: 0.14,
   ruinRise: 0.3,
-  maxTriangles: 90000,
+  maxTriangles: 2 * (world.half * 2 / world.terrainSpacing) ** 2 + 45000,
 });
 
 const palette = {
@@ -60,6 +59,12 @@ export const pathCurves = [
   [[-42, 25], [-34, 22], [-27, 17], [-19, 13], [-12, 9]],
   [[12, 9], [20, 5], [29, 1], [38, 2], [47, 12]],
   [[-7, -13], [3, -19], [15, -24], [25, -29], [36, -36]],
+  // Regional loop and branches, kept outside the existing central village.
+  [[-world.half+35,7],[-world.half+35,-world.half+35],[0,-world.half+35],[world.half-35,-world.half+35],[world.half-35,0],[world.half-35,world.half-35],[0,world.half-35],[-world.half+35,world.half-35],[-world.half+35,7]],
+  [[-100,7],[-world.half+35,7],[-world.half+35,32]],
+  [[5,-100],[0,-world.half+35]],
+  [[100,100],[world.half-35,world.half-35]],
+  [[-30,100],[-30,world.half-35]],
 ].map((points) => new THREE.CatmullRomCurve3(points.map(([x, z]) => new THREE.Vector3(x, 0, z)))
   .getPoints(90).map((p) => [p.x, p.z]));
 
@@ -148,6 +153,11 @@ export function buildMeadow() {
       let color = Math.abs(riverV(x, z)) < 2
         ? new THREE.Color('#abac75')
         : grassBase.clone().lerp(grassTop, smooth((height + 0.6) / 5.2)).multiplyScalar(variation);
+      const biome=forestAt(x,z);
+      if(biome.weight>0&&Math.max(Math.abs(x),Math.abs(z))>120&&Math.abs(riverV(x,z))>3) {
+        const floor=biome.zone.kind==='pine'?'#77764b':biome.zone.kind==='birch'?'#8da76b':'#557249';
+        color.lerp(new THREE.Color(floor).multiplyScalar(variation),biome.weight*0.82);
+      }
       if (Math.abs(riverV(x, z)) >= 2 && Math.hypot(x, z) > 12) {
         const { distance, offset } = nearestRoadDetails(x, z);
         const roadBlend = 1 - smooth((distance - 1.35) / 1.45);
@@ -338,15 +348,6 @@ export function buildMeadow() {
   add('Park pond water', new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2), '#4d9ea7',
     [pondX, pondY + 0.04, pondZ], [6.5, 1, 4.5], 0.15, { role: 'pond', zone: 'park' });
 
-  // Activity meadow markers give the social centre readable landmarks without
-  // adding a second map or a separate scene.
-  for (const [x, z] of [[34, 5], [46, 5]]) {
-    box(`Activity meadow post ${x}`, x, z, 0.18, 2.1, 0.18, '#795434', groundHeight(x, z), 0,
-      { role: 'activity', zone: 'activity-meadow' });
-    box(`Activity meadow crossbar ${x}`, x, z, 2.2, 0.16, 0.16, '#a07948', groundHeight(x, z) + 1.6, 0,
-      { role: 'activity', zone: 'activity-meadow' });
-  }
-
   function fence(points, label, zone = 'countryside') {
     for (let i = 0; i < points.length; i++) {
       const [x, z] = points[i], base = groundHeight(x, z);
@@ -454,7 +455,7 @@ export function buildMeadow() {
   // Separate visual-only scenery beyond the expanded playable border.
   for (let i = 0; i < 12; i++) {
     const angle = i * Math.PI * 2 / 12;
-    const radius = 219 + random() * 9, height = 25 + random() * 22, width = 18 + random() * 8;
+    const radius = world.half * Math.SQRT2 + 50 + random() * 9, height = 25 + random() * 22, width = 18 + random() * 8;
     const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
     // Split mountain sides at a shared snowline, retaining angular, low-detail ridges.
     const snowHeight = height * 0.3, lowerHeight = height - snowHeight;
@@ -469,7 +470,7 @@ export function buildMeadow() {
   // instead of a single row of isolated peaks. These remain visual-only.
   for (let i = 0; i < 18; i++) {
     const angle = (i + 0.5) * Math.PI * 2 / 18;
-    const radius = 185 + random() * 8;
+    const radius = world.half * Math.SQRT2 + 20 + random() * 8;
     const height = 14 + random() * 10;
     const width = 10 + random() * 5;
     const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
@@ -485,22 +486,22 @@ export function buildMeadow() {
     }
   }
   add('Backdrop castle plateau', new THREE.CylinderGeometry(15, 21, 16, 7), '#81a477',
-    [-157, 6, -151], undefined, 0, { role: 'backdrop', visualOnly: true });
-  box('Backdrop castle keep', -157, -151, 10, 10, 7, '#d4d8bc', 14, 0, { role: 'backdrop', visualOnly: true });
+    [-world.half-37, 6, -world.half-31], undefined, 0, { role: 'backdrop', visualOnly: true });
+  box('Backdrop castle keep', -world.half-37, -world.half-31, 10, 10, 7, '#d4d8bc', 14, 0, { role: 'backdrop', visualOnly: true });
   for (const [dx, dz] of [[-6, -4], [6, -4], [-6, 4], [6, 4]]) {
     add(`Backdrop castle tower ${dx} ${dz}`, new THREE.CylinderGeometry(1.8, 2, 14, 6), '#e0e1c8',
-      [-157 + dx, 21, -151 + dz], undefined, 0, { role: 'backdrop', visualOnly: true });
+      [-world.half-37 + dx, 21, -world.half-31 + dz], undefined, 0, { role: 'backdrop', visualOnly: true });
     add(`Backdrop castle roof ${dx} ${dz}`, new THREE.ConeGeometry(2.5, 5, 6), '#638a91',
-      [-157 + dx, 30.5, -151 + dz], undefined, 0, { role: 'backdrop', visualOnly: true });
+      [-world.half-37 + dx, 30.5, -world.half-31 + dz], undefined, 0, { role: 'backdrop', visualOnly: true });
   }
   for (let i = 0; i < 6; i++) {
-    box(`Backdrop castle merlon ${i}`, -161.5 + i * 1.8, -147.5, 0.9, 1, 0.9, '#e4e2c9', 24, 0,
+    box(`Backdrop castle merlon ${i}`, -world.half-41.5 + i * 1.8, -world.half-27.5, 0.9, 1, 0.9, '#e4e2c9', 24, 0,
       { role: 'backdrop', visualOnly: true });
   }
   add('Backdrop lake shore', new THREE.CylinderGeometry(1, 1, 0.5, 13), '#8ba982',
-    [173, -1.1, -131], [30, 1, 17], 0.2, { role: 'backdrop', visualOnly: true });
+    [world.half+53, -1.1, -world.half-11], [30, 1, 17], 0.2, { role: 'backdrop', visualOnly: true });
   add('Backdrop blue lake', new THREE.CircleGeometry(1, 13).rotateX(-Math.PI / 2), '#529fa9',
-    [173, -0.8, -131], [28, 1, 15], 0.2, { role: 'backdrop', visualOnly: true });
+    [world.half+53, -0.8, -world.half-11], [28, 1, 15], 0.2, { role: 'backdrop', visualOnly: true });
 
   return { meshes, spec: SPEC };
 }

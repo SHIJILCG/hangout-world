@@ -1,21 +1,12 @@
-// MUST MATCH client values:
-//   WORLD_HALF  ↔ client/src/world/map.ts (meadow: 240x240 world)
+import world from '../../shared/world.json';
+// World bounds come from the same shared file as the client.
+// Spawn points MUST MATCH client values:
+//   WORLD_HALF  ↔ client/src/world/map.ts (shared world dimensions)
 //   SPAWN       ↔ client/src/world/map.ts
 // Any change here must be mirrored there (and vice versa).
-export const WORLD_HALF = 120;
+export const WORLD_HALF = world.half;
 export interface SpawnPoint { x: number; y: number; z: number }
-export const SPAWN_POINTS: readonly SpawnPoint[] = [
-  { x: 0, y: 0, z: 8 },
-  { x: 1.9, y: 0, z: 8 },
-  { x: 1.55, y: 0, z: 6.8 },
-  { x: 0.6, y: 0, z: 5.8 },
-  { x: -0.6, y: 0, z: 5.8 },
-  { x: -1.55, y: 0, z: 6.8 },
-  { x: -1.9, y: 0, z: 8 },
-  { x: -1.55, y: 0, z: 9.2 },
-  { x: -0.6, y: 0, z: 9.5 },
-  { x: 0.6, y: 0, z: 9.2 },
-] as const;
+export const SPAWN_POINTS: readonly SpawnPoint[] = world.spawnPoints;
 export const SPAWN: SpawnPoint = SPAWN_POINTS[0]!;
 
 // Server-only tuning:
@@ -31,7 +22,7 @@ export const CHAT_MAX_LENGTH = 200;  // chars per message after trim
 export const CHAT_BURST = 3;         // instant messages before throttling
 export const CHAT_REFILL_MS = 1000;  // one token back per second
 
-// Social distances use horizontal world metres (the meadow is 240 x 240 m).
+// Social distances use horizontal world metres (independent of map dimensions).
 export const PROXIMITY = {
   chatRadius: 18,
   voiceRadius: 22,

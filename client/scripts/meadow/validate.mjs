@@ -1,3 +1,4 @@
+import { SPEC } from './scene.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
@@ -30,7 +31,7 @@ export function validateMeadow(buffer) {
   assert.equal(json.buffers[0].byteLength, binary.length);
   assert.ok(!json.buffers[0].uri, 'GLB must be self-contained');
   assert.equal(json.scenes.length, 1);
-  assert.equal(json.scenes[0].extras.playableHalf, 120);
+  assert.equal(json.scenes[0].extras.playableHalf, SPEC.playableHalf);
   assert.equal(json.scenes[0].extras.bridgeCenter, 30);
   assert.equal(json.materials.length, 1);
   assert.equal(json.materials[0].alphaMode, 'OPAQUE');
@@ -70,11 +71,11 @@ export function validateMeadow(buffer) {
       }
       near(Math.hypot(...normals.slice(i, i + 3)), 1, `Unit normal in ${node.name}`);
       if (node.extras.role !== 'backdrop') {
-        assert.ok(Math.abs(positions[i]) <= 120 + EPS && Math.abs(positions[i + 2]) <= 120 + EPS,
+        assert.ok(Math.abs(positions[i]) <= SPEC.playableHalf + EPS && Math.abs(positions[i + 2]) <= SPEC.playableHalf + EPS,
         `Playable mesh outside 240m square: ${node.name}`);
       } else {
         assert.equal(node.extras.visualOnly, true);
-        assert.ok(Math.hypot(positions[i], positions[i + 2]) <= 260 + EPS, `Backdrop beyond 260m: ${node.name}`);
+        assert.ok(Math.hypot(positions[i], positions[i + 2]) <= SPEC.playableHalf * Math.SQRT2 + 100 + EPS, `Backdrop beyond 260m: ${node.name}`);
       }
     }
     for (let i = 0; i < positions.length; i += 9) {
@@ -103,11 +104,11 @@ export function validateMeadow(buffer) {
     assert.deepEqual(accessor.max, max);
     nodes.push({ ...node, min, max, positions });
   }
-  assert.ok(triangles < 90000, `Triangle budget exceeded: ${triangles}`);
+  assert.ok(triangles < SPEC.maxTriangles, `Triangle budget exceeded: ${triangles}`);
   assert.ok(backdropTriangles < 2000, `Backdrop must remain low detail: ${backdropTriangles}`);
   const terrain = nodes.find((n) => n.extras.role === 'terrain');
   assert.ok(terrain);
-  for (const axis of [0, 2]) { near(terrain.min[axis], -120, 'Ground min'); near(terrain.max[axis], 120, 'Ground max'); }
+  for (const axis of [0, 2]) { near(terrain.min[axis], -SPEC.playableHalf, 'Ground min'); near(terrain.max[axis], SPEC.playableHalf, 'Ground max'); }
   const river = nodes.find((n) => n.extras.role === 'river');
   assert.ok(river);
   const riverV = [];
@@ -117,8 +118,8 @@ export function validateMeadow(buffer) {
   }
   near(Math.max(...riverV) - Math.min(...riverV), 4, 'River width');
   near((Math.max(...riverV) + Math.min(...riverV)) / 2, 0, 'River stays in the expanded corner');
-  near(river.max[0], 120, 'River reaches east boundary');
-  near(river.max[2], 120, 'River reaches south boundary');
+  near(river.max[0], SPEC.playableHalf, 'River reaches east boundary');
+  near(river.max[2], SPEC.playableHalf, 'River reaches south boundary');
   const deck = nodes.find((n) => n.extras.role === 'bridge-deck');
   const crown = nodes.find((n) => n.extras.role === 'ruin-crown');
   assert.ok(deck && crown);
@@ -173,7 +174,7 @@ export function validateMeadow(buffer) {
   for (const role of ['fence', 'rock', 'ruin', 'bridge-structure']) assert.ok(nodes.some((n) => n.extras.role === role));
   return {
     triangles, backdropTriangles, meshes: nodes.length, bytes: buffer.length,
-    trees: treeCount, playableMeters: '240 x 240', emptyCenterRadiusMeters: 10,
+    trees: treeCount, playableMeters: `${SPEC.playableHalf*2} x ${SPEC.playableHalf*2}`, emptyCenterRadiusMeters: 10,
     riverWidthMeters: 4, bridgeDeckMeters: 1, maxStepRiseMeters: 0.3,
     materials: 1, textures: 0, animations: 0, embeddedLights: 0, transparency: false,
   };

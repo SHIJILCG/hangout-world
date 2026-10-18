@@ -1,0 +1,27 @@
+{
+  "note": "Production 720p static village view. Render counts only; no controlled FPS comparison.",
+  "draws": 140,
+  "triangles": 156491,
+  "props": [
+    {
+      "asset": "village_stall",
+      "lod": 0,
+      "count": 2
+    },
+    {
+      "asset": "village_well",
+      "lod": 0,
+      "count": 1
+    },
+    {
+      "asset": "village_bench",
+      "lod": 0,
+      "count": 2
+    },
+    {
+      "asset": "village_storage",
+      "lod": 0,
+      "count": 2
+    }
+  ]
+}

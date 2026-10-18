@@ -1,6 +1,9 @@
+import world from '../../../shared/world.json';
+import roadsJson from './roads.json';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { CollisionWorld } from './collision';
+import { createGrass } from './grass';
 
 const ASSETS = {
   pine: '/environment-demo-prototype/PT_Pine_Tree_03_green.glb',
@@ -13,8 +16,8 @@ const ASSETS = {
   gnarledTree: '/environment-library/gnarled_tree.glb',
   ruinedWall: '/environment-library/stone_arch.glb',
   flagstones: '/environment-library/flagstone_patch.glb',
-  stoneCottage: '/environment-library/stone_cottage.glb',
-  cottageLow: '/environment-library/stone_cottage_low.glb',
+  stoneCottage: '/environment-library/stone_cottage_batched.glb',
+  cottageLow: '/environment-library/stone_cottage_low_batched.glb',
 } as const;
 
 type AssetName = keyof typeof ASSETS;
@@ -73,17 +76,7 @@ const GRASS_PATCH_CENTERS: readonly [number, number][] = [
   [16, 55], [36, 53], [54, 48], [-58, 2], [-56, 21], [55, 8], [56, 27], [-28, -30], [8, 31], [42, 37],
 ];
 
-const STUDY_ROADS: readonly (readonly [number, number][])[] = [
-  [[-57, 7], [-39, 8], [-22, 7], [-8, 6], [5, 8], [21, 12], [38, 17], [56, 22]],
-  [[-8, -57], [-8, -37], [-5, -20], [0, -7], [4, 7], [7, 23], [13, 39], [16, 57]],
-  [[-17, 15], [-10, 20], [2, 21], [14, 19], [21, 12]],
-  [[13, -9], [20, -14], [27, -21], [30, -29], [24, -38], [18, -47]],
-  [[-48, -35], [-39, -23], [-34, -8], [-32, 12], [-37, 32], [-46, 48]],
-  [[-120, 7], [-100, 7], [-78, 7], [-55, 7]],
-  [[5, -55], [5, -78], [5, -100], [5, -120]],
-  [[57, 57], [78, 78], [100, 100], [120, 120]],
-  [[55, -8], [78, -5], [100, -5], [120, -5]],
-];
+const STUDY_ROADS = roadsJson as [number, number][][];
 
 function distanceToSegment(
   x: number,
@@ -192,7 +185,7 @@ function addInstances(
   });
   const cells = new Map<string, Placement[]>();
   for (const p of placements) {
-    const key = Math.floor(p.x / 30) + ',' + Math.floor(p.z / 30);
+    const key = Math.floor(p.x / world.sectionSize) + ',' + Math.floor(p.z / world.sectionSize);
     const list = cells.get(key) ?? []; list.push(p); cells.set(key, list);
   }
   const grass = name.includes('grass patches');
@@ -204,7 +197,7 @@ function addInstances(
     for (let level = 0; level < 3; level++) {
       const chosen = [...levels.keys()].sort((a,b)=>Math.abs(a-level)-Math.abs(b-level) || b-a)[0];
       const group = new THREE.Group();
-      group.userData.detail = { x: cx*30+15, z: cz*30+15, min: distances[level], max: distances[level+1], grass };
+      group.userData.detail = { x: cx*world.sectionSize+world.sectionSize/2, z: cz*world.sectionSize+world.sectionSize/2, min: distances[level], max: distances[level+1], grass };
       group.visible = false;
       for (const source of levels.get(chosen) ?? []) {
         let geometry = geometries.get(source);
@@ -237,6 +230,7 @@ export async function addEnvironmentAssets(
   const loader = new GLTFLoader();
   const entries = await Promise.all(
     Object.entries(ASSETS).map(async ([name, url]) => {
+      if (name === 'grass') return ['grass', createGrass()] as const;
       const gltf = await loader.loadAsync(url);
       const assetName = name as AssetName;
       if (FLAT_COLORED_ASSETS.has(assetName)) replaceMaterials(gltf.scene, assetName);

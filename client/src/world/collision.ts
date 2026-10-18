@@ -7,7 +7,7 @@ export interface HeightGrid {
   min: number;       // world coord of heights[0] in both x and z
   step: number;      // grid spacing
   size: number;      // samples per side
-  heights: number[]; // row-major, z-then-x: heights[zi * size + xi] at (min+xi*step, min+zi*step)
+  heights: number[] | Float32Array; // row-major, z-then-x
 }
 
 export const STEP_HEIGHT = 0.35;

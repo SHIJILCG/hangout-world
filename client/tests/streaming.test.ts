@@ -26,6 +26,18 @@ function setup(failFirst = false) {
 }
 
 describe('map streaming',()=> {
+  it('keeps the resident limit when moving to nearer sections before eviction delay expires',async()=> {
+    const {geometryDisposed}=setup();
+    const map=new StreamedMap();await map.initialize();
+    map.update(45,15,0,1000,2);
+    await vi.waitFor(()=>expect(map.activeSections).toBe(2));
+    map.update(165,15,300,1000,2);
+    await vi.waitFor(()=>expect(map.pendingSections).toBe(0));
+    expect(map.activeSections).toBe(2);
+    expect([...map.activeKeys].sort()).toEqual(['3','4']);
+    expect(geometryDisposed).toHaveBeenCalledTimes(2);map.dispose();
+  });
+
   it('limits requests, swaps fallback terrain, and disposes distant sections',async()=> {
     const {fallback,geometryDisposed}=setup();
     const map=new StreamedMap(); await map.initialize();

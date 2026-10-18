@@ -8,8 +8,10 @@
     "test": "vitest run --configLoader runner",
     "generate:meadow": "node scripts/meadow/generate.mjs",
     "generate:cottage-lod": "node scripts/cottage-lod.mjs",
+    "generate:expansion-assets": "node scripts/export-expansion-assets.mjs",
     "validate:meadow": "node scripts/meadow/validate.mjs",
-    "test:meadow": "node --test scripts/meadow/meadow.check.mjs"
+    "test:meadow": "node --test scripts/meadow/meadow.check.mjs scripts/meadow/expansion.check.mjs",
+    "generate:village-assets": "node scripts/export-village-assets.mjs"
   },
   "dependencies": {
     "colyseus.js": "^0.16.0",

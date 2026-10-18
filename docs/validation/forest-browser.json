@@ -1,0 +1,97 @@
+{
+  "errors": [],
+  "failed": [],
+  "samples": [
+    {
+      "cycle": 0,
+      "place": "Village",
+      "sections": 84,
+      "pending": 0,
+      "templates": 6,
+      "instances": 1243,
+      "forestTrees": 75,
+      "draws": 184,
+      "triangles": 163535,
+      "geometry": 132,
+      "p95": 20.900000000001455
+    },
+    {
+      "cycle": 0,
+      "place": "Orchard Farm",
+      "sections": 63,
+      "pending": 0,
+      "templates": 7,
+      "instances": 2416,
+      "forestTrees": 71,
+      "draws": 44,
+      "triangles": 73995,
+      "geometry": 112,
+      "p95": 20.599999999998545
+    },
+    {
+      "cycle": 0,
+      "place": "North Woods",
+      "sections": 69,
+      "pending": 0,
+      "templates": 5,
+      "instances": 5005,
+      "forestTrees": 632,
+      "draws": 97,
+      "triangles": 99845,
+      "geometry": 115,
+      "p95": 21.599999999998545
+    },
+    {
+      "cycle": 0,
+      "place": "Pine Grove",
+      "sections": 62,
+      "pending": 0,
+      "templates": 4,
+      "instances": 3481,
+      "forestTrees": 291,
+      "draws": 131,
+      "triangles": 90080,
+      "geometry": 124,
+      "p95": 22.700000000004366
+    },
+    {
+      "cycle": 0,
+      "place": "Birch Copse",
+      "sections": 52,
+      "pending": 0,
+      "templates": 9,
+      "instances": 2450,
+      "forestTrees": 81,
+      "draws": 69,
+      "triangles": 86945,
+      "geometry": 103,
+      "p95": 21.700000000004366
+    },
+    {
+      "cycle": 0,
+      "place": "Old Courtyard",
+      "sections": 62,
+      "pending": 0,
+      "templates": 8,
+      "instances": 2675,
+      "forestTrees": 49,
+      "draws": 143,
+      "triangles": 78753,
+      "geometry": 141,
+      "p95": 19.5
+    },
+    {
+      "cycle": 0,
+      "place": "Riverside Clearing",
+      "sections": 54,
+      "pending": 0,
+      "templates": 7,
+      "instances": 3352,
+      "forestTrees": 250,
+      "draws": 91,
+      "triangles": 52061,
+      "geometry": 116,
+      "p95": 19.80000000000291
+    }
+  ]
+}

@@ -17,22 +17,22 @@ function generate() {
 test('saved standalone GLB meets geometric and technical constraints', async () => {
   const buffer = await readFile(new URL('../../public/models/fantasy-meadow.glb', import.meta.url));
   const report = validateMeadow(buffer);
-  assert.ok(report.triangles < 90000);
-  assert.equal(report.playableMeters, '240 x 240');
+  assert.ok(report.triangles < SPEC.maxTriangles);
+  assert.equal(report.playableMeters, `${SPEC.playableHalf*2} x ${SPEC.playableHalf*2}`);
   assert.equal(report.emptyCenterRadiusMeters, 10);
   assert.equal(report.riverWidthMeters, 4);
   assert.equal(report.bridgeDeckMeters, 1);
   assert.equal(report.maxStepRiseMeters, 0.3);
 });
 
-test('terrain uses the 160-segment browser budget at expanded world size', () => {
-  assert.equal(TERRAIN_SEGMENTS, 160);
-  assert.equal(TERRAIN_SAMPLES ** 2, 25921);
+test('terrain preserves 1.5m sampling at the configured world size', () => {
+  assert.equal(TERRAIN_SEGMENTS, SPEC.playableHalf*2/1.5);
+  assert.equal(TERRAIN_SAMPLES ** 2, (TERRAIN_SEGMENTS+1)**2);
   const scene = buildMeadow();
   try {
     const terrain = scene.meshes.find((mesh) => mesh.extras.role === 'terrain');
     assert.ok(terrain);
-    assert.equal(terrain.geometry.getAttribute('position').count / 3, 51200);
+    assert.equal(terrain.geometry.getAttribute('position').count / 3, TERRAIN_SEGMENTS**2*2);
   } finally {
     for (const mesh of scene.meshes) mesh.geometry.dispose();
   }
@@ -64,7 +64,7 @@ test('backdrop has a layered mountain horizon outside the playable and collision
 });
 
 test('paths reach the expanded edges and the relocated bridge', () => {
-  for (const [x, z] of [[-120, 7], [5, -120], [110, 110], [120, -5], [30, 30]]) {
+  for (const [x, z] of [[-SPEC.playableHalf, 7], [5, -SPEC.playableHalf], [SPEC.playableHalf, SPEC.playableHalf], [SPEC.playableHalf, -5], [30, 30]]) {
     assert.ok(pathDistance(x, z) < 0.01, `Missing path at ${x}, ${z}`);
   }
 });
@@ -152,7 +152,7 @@ test('collision manifest: grid matches terrain samples, spawn is flat, and heigh
   assert.ok(Math.abs(step - (SPEC.playableHalf * 2) / TERRAIN_SEGMENTS) < 1e-9);
   const centerIndex = ((0 - min) / step) * size + (0 - min) / step;
   assert.equal(Math.abs(heights[centerIndex]), 0);
-  for (const h of heights) assert.ok(Math.abs(h) <= 4.5, `height out of range: ${h}`);
+  for (const h of heights) assert.ok(Math.abs(h) <= 7, `height out of range: ${h}`);
 });
 
 test('terrain stays within the 12-degree traversal slope target', () => {
@@ -294,4 +294,21 @@ test('collision manifest: all ten plaza spawn pads are flat and clear', async ()
     }
     assert.equal(groundHeight(cx, cz), 0);
   }
+});
+
+ test('northern ridges provide elevation and a lower traversable saddle',()=>{
+  const west=groundHeight(-82,-183),east=groundHeight(65,-180),saddle=groundHeight(-8,-160);
+  assert.ok(west>6,'Western woodland ridge must be visually distinct');
+  assert.ok(east>4,'Eastern meadow ridge must be visible');
+  assert.ok(saddle<Math.min(west,east)-1.5,'Keep a lower saddle between ridges');
+  assert.equal(groundHeight(0,8),0);
+ });
+
+test('regional working areas stay level while surrounding woodland rolls',()=>{
+  for(const x of [-226,-205,-184])for(const z of [12,32,53])assert.ok(Math.abs(groundHeight(x,z)-4)<1e-9);
+  for(const x of [-44,-30,-16])for(const z of [200,205,217])assert.ok(Math.abs(groundHeight(x,z)-3.2)<1e-9);
+  assert.ok(groundHeight(187,65)>2.5,'Pine ground needs a distinct rise');
+  assert.ok(groundHeight(-173,157)>3,'Birch ground needs a distinct rise');
+  assert.ok(groundHeight(-140,32)<3,'Orchard must have a descending approach');
+  for(const x of [-100,30,190])assert.ok(groundHeight(x,60-x)<=0,'River bed must remain below water away from the bridge');
 });

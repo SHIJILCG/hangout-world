@@ -8,15 +8,15 @@ manifest in `client/src/world/meadow-collision.json`.
 ## Contents and coordinates
 
 - glTF 2.0 binary, Y-up, meters, identity node transforms, embedded geometry.
-- Playable terrain: **240 x 240 m**, `x,z = [-120,120]`. The exact center is `(0,0,0)`.
+- Playable terrain: **480 x 480 m**, `x,z = [-240,240]`. The exact center is `(0,0,0)`.
   The central plaza remains flat while the outer meadow gains distinct village,
   park/pond, activity meadow, stable, forest, ruins, and countryside zones.
 - A radius-10 m disk at the center is flat grass at `y=0`, without props,
   flowers, or paths. A small additional flat margin keeps boundary triangles flat.
-- The 160-segment terrain profile in `client/scripts/meadow/terrain.mjs` is a
+- The 320-segment terrain profile in `client/scripts/meadow/terrain.mjs` is a
   gameplay-adapted visual study inspired by the isolated Environment_Free
   preview; it is not an export or exact copy of Unity TerrainData. The mesh has
-  25,921 grid samples and 51,200 terrain triangles, with the collision
+  103,041 grid samples and 204,800 terrain triangles, with the collision
   heightfield sampled at the same coordinates.
 - Broad rolling hills surround the flat social clearing, pond basin, and
   bridge approach. Dirt paths curve around the clearing and branch toward the
@@ -25,7 +25,7 @@ manifest in `client/src/world/meadow-collision.json`.
 - The diagonal river follows `x + z = 60`, is 4 m wide, and stays inside the
   square. The opaque water is at `y=-0.16`, above a recessed riverbed.
 - The stone bridge is centered at `(30,30)` in XZ, with a deck at `y=1`.
-  Both approaches have four 0.25 m rises and 0.8 m treads, 3.2 m wide.
+  Both approaches have four 0.14 m rises and 0.8 m treads, 3.2 m wide.
   The river and bridge move together toward the expanded corner; their dimensions
   are unchanged. Paths extend to the new boundaries, with trees redistributed
   and additional flowers and rocks across the outer meadow.
@@ -35,15 +35,16 @@ manifest in `client/src/world/meadow-collision.json`.
   twelve 0.3 m rises, 0.85 m treads, and 1.7 m-wide tops, reaching its
   `y=3.6` crown. Broken columns and rubble surround it.
 - Ten deterministic spawn pads ring the central plaza. Seventy-four faceted trees,
-  village cottages, a stable/paddock, activity markers, wooden fences, low rocks,
+  village cottages, a stable/paddock, wooden fences, low rocks,
   and white/yellow wildflower patches populate the expanded world.
 - Snowy mountains, a castle plateau, and a blue lake are visual-only backdrop
-  meshes, with all geometry between 100 and 260 m horizontally from the origin.
+  meshes, with their distance derived from the configured world bounds.
   The space between the playable square and backdrop is intentionally not
   traversable terrain; use the host scene's sky/background and distance fog.
 
-The complete generated environment contains fewer than **90,000 triangles**;
-the terrain itself contributes 51,200 triangles. The
+The base generated environment contains **236,209 triangles**;
+the terrain itself contributes 204,800 triangles. Runtime streaming loads nearby
+sections, while the distant terrain uses a coarse representation. The
 terrain uses smooth heightfield normals; props use flat normals. All surfaces
 share a single rough, opaque vertex-color material.
 There are **no textures, animations, embedded lights, lightmaps, or transparent
@@ -79,7 +80,8 @@ npm run dev
 Open `/meadow-preview.html` on the Vite development server. The preview offers
 overview, bridge, ruins, meadow, and backdrop camera presets, plus a GLB download.
 Drag to orbit, scroll to zoom, and right-drag to pan. This is a development-only
-viewer; the production game uses the same GLB with its player/collision systems.
+viewer; the production game uses generated sections with its player/collision systems.
+Open `/environment-preview.html` for the full streamed world and regional models.
 Vite copies the asset into `dist/models/fantasy-meadow.glb` during the normal build.
 
 ## Importing into a game
