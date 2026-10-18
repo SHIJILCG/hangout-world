@@ -21,6 +21,7 @@ interface Entry {
   pose: Pose;     // rendered (smoothed) pose
   target: Pose;   // latest server pose
   animationTime: number;
+  ridePose?: Pose;
 }
 
 export class RemotePlayers {
@@ -66,6 +67,12 @@ export class RemotePlayers {
     return this.entries.get(sessionId)?.root;
   }
 
+  setRidePose(sessionId:string,pose:Pose|null,driving=false):void {
+    const entry=this.entries.get(sessionId);if(!entry)return;
+    entry.ridePose=pose??undefined;entry.root.userData.mounted=!!pose;
+    entry.root.userData.driving=driving;
+  }
+
   setSpeaking(sessionId: string, speaking: boolean): void {
     const entry = this.entries.get(sessionId);
     if (entry) setSpeaking(entry.root, speaking);
@@ -76,7 +83,7 @@ export class RemotePlayers {
     this.time += dt;
     for (const entry of this.entries.values()) {
       const previous = entry.pose;
-      entry.pose = stepToward(entry.pose, entry.target, dt);
+      entry.pose = entry.ridePose ? {...entry.ridePose} : stepToward(entry.pose, entry.target, dt);
       entry.root.position.set(entry.pose.x, entry.pose.y, entry.pose.z);
       entry.root.rotation.y = entry.pose.heading;
       const speed = Math.min(8, Math.hypot(entry.pose.x - previous.x, entry.pose.z - previous.z) / dt);

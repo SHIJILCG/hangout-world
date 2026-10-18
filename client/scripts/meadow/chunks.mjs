@@ -62,8 +62,7 @@ export async function writeChunks(scene) {
   for (const mesh of scene.meshes) {
     const { name, geometry, extras } = mesh;
     if (name.startsWith('Town market stall ')||name.startsWith('Town market canopy ')) continue;
-    if (name.endsWith(' walls') || name.endsWith(' roof') || (name.startsWith('Village ') && name.endsWith(' door'))
-      || (extras.role?.startsWith('bridge-') && extras.role !== 'bridge-step')) continue;
+    if (name.endsWith(' walls') || name.endsWith(' roof') || (name.startsWith('Village ') && name.endsWith(' door'))) continue;
     if (name.startsWith('Backdrop')) { overview.push(mesh); continue; }
     if (extras.role !== 'terrain') {
       geometry.computeBoundingBox();

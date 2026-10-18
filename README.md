@@ -10,19 +10,24 @@ Built for desktop browsers with **Three.js, TypeScript, Vite, and Colyseus**.
 
 - **A shared world for up to 20 players** with smooth remote-player movement,
   automatic full-room retries, and recovery from brief connection drops.
-- **A 240 x 240 meter rolling meadow** with a connected medieval village/social centre,
+- **A 480 x 480 meter rolling meadow** with a connected medieval village/social centre,
   park pond, activity meadow, stable/paddock, forest, countryside, winding
-  curved paths, a river, a walkable stone bridge, and climbable ruins.
+  curved paths, a river, a wide wooden bridge, and climbable ruins.
   Snowy mountains, a castle, and a lake form the distant backdrop.
 - **Seven medieval character choices** with walk/run and jump animations,
   synced across players while preserving the existing movement and room protocol.
+- **A shared rideable horse:** Chestnut starts outside the stable at (23, -23).
+  Mount, walk or trot, and safely dismount; one player rides at a time.
+- **A horse-drawn orchard cart** at (12, -32), with animated wheels and a driver
+  bench. Cleared vehicle lanes connect the stable, village, orchard and bridge.
+  The bridge has a 6-metre deck and shallow ramps, shared by walkers and carts.
 - **Proximity text chat and WebRTC voice:** messages and voice reach only nearby players; voice is opt-in, has mute controls, and uses distance-based volume.
   Bubbles wrap long messages and stay a consistent screen size as the camera
   moves; the chat panel shows the full message.
 - **Player blocking** that hides a player's messages and bubbles, including
   messages already on screen. Preferences are saved locally.
-- **A reproducible environment asset**: one vertex-colored GLB under 90,000
-  triangles, generated alongside the game's collision manifest.
+- **A reproducible streamed environment** generated alongside its collision
+  manifest, with nearby sections loaded as players travel.
 
 The world uses the six environment models in `client/public/environment-demo-prototype/`
 and `client/public/environment-prototype/`. Character models and their license
@@ -38,6 +43,8 @@ configure a TURN relay on the game server for restrictive networks.
 | Walk | `W`, `A`, `S`, `D` |
 | Run | Hold `Shift` while moving |
 | Jump | `Space` |
+| Mount / dismount a horse or cart | `E` nearby, or its ride button |
+| Steer / trot while mounted | `W`, `A`, `S`, `D` / hold `Shift` |
 | Rotate the camera | Click and drag in the world |
 | Zoom | Mouse wheel |
 | Open chat / send a message | `Enter` |
@@ -82,6 +89,19 @@ Open another browser tab or window to try multiplayer.
 
 The game server runs on port **2567** by default. No environment file or
 external service account is required for local play.
+
+The server reads `client/public/models/collision.json` and `heights.bin` at
+startup for horse physics. Deploy from the repository root with `shared/` and
+these generated files included; regenerate and deploy client/server collision
+data together when changing terrain. The Render blueprint uses this layout.
+
+Chestnut is original procedural geometry in `client/src/world/horse.ts`:
+808 triangles, one material, no external model or texture license required.
+The moving cart reuses the Kenney CC0 model and wheel meshes already in
+`client/public/environment-expansion/`; that folder contains its license.
+See the [horse pilot report](docs/superpowers/specs/2026-10-18-horse-pilot.md)
+and [cart/route report](docs/superpowers/specs/2026-10-18-cart-and-routes.md)
+and [next milestones](docs/rides-and-activities-plan.md).
 
 ### Configuration
 

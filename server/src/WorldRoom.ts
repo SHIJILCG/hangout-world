@@ -1,5 +1,8 @@
 import { Room, ServerError, type Client } from 'colyseus';
-import { WorldState, PlayerState } from './schema';
+import { WorldState, PlayerState, RideState } from './schema';
+import { RideSystem } from './rides';
+import { rideWorld } from './rideWorld';
+import { HORSE, RIDE_DEFINITIONS } from '../../shared/rides';
 import { sanitizeName, clampColorIndex, validateMove, sanitizeChat } from './validation';
 import { SPAWN, SPAWN_POINTS, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP, CHAT_BURST, CHAT_REFILL_MS, PROXIMITY } from './constants';
 import { nearbyPlayerIds } from './proximity';
@@ -22,6 +25,7 @@ export class WorldRoom extends Room<WorldState> {
   private voiceLinks = new Set<string>();
   private proximityCapable = new Set<string>();
   private spawnAssignments = new Map<string, number>();
+  private rides = new Map<string, RideSystem>();
 
   onCreate(): void {
     if (WorldRoom.active) throw new ServerError(4210, 'The world is full. Please retry shortly.');
@@ -30,10 +34,37 @@ export class WorldRoom extends Room<WorldState> {
     // briefly empty between players.
     this.autoDispose = false;
     WorldRoom.active = this;
+    for (const definition of RIDE_DEFINITIONS) {
+      const ride = new RideState();
+      Object.assign(ride,{x:definition.x,z:definition.z,y:rideWorld.groundAt(definition.x,definition.z),heading:definition.heading});
+      this.state.rides.set(definition.id,ride);
+      this.rides.set(definition.id,new RideSystem(ride,rideWorld,definition));
+    }
+    this.setSimulationInterval(() => {
+      for (const system of this.rides.values()) system.tick(1/30,this.state.players,Date.now());
+    },1000/30);
+    this.clock.setInterval(()=>{
+      for (const system of this.rides.values()) if(system.ride.occupant)this.syncVoiceRelationships(system.ride.occupant);
+    },250);
+    this.onMessage('ride-action',(client,message:unknown)=>{
+      const player=this.state.players.get(client.sessionId);
+      if(!player || !message || typeof message!=='object')return;
+      const {action,rideId} = message as {action?:unknown;rideId?:unknown};
+      if(action!=='mount'&&action!=='dismount')return;
+      const id = action==='dismount' ? player.rideId : typeof rideId==='string' ? rideId : HORSE.id;
+      const system=this.rides.get(id);
+      const error=system ? system[action](client.sessionId,player,Date.now()) : 'That ride is unavailable.';
+      client.send('ride-result',{error});
+      if(!error)this.moveBudget.set(client.sessionId,{budget:0,lastAt:Date.now()});
+    });
+    this.onMessage('ride-input',(client,message:unknown)=>{
+      const id=this.state.players.get(client.sessionId)?.rideId;
+      if(id)this.rides.get(id)?.drive(client.sessionId,message,Date.now());
+    });
 
     this.onMessage('move', (client, message: unknown) => {
       const p = this.state.players.get(client.sessionId);
-      if (!p) return;
+      if (!p || p.rideId) return;
 
       const now = Date.now();
       const entry = this.moveBudget.get(client.sessionId) ?? { budget: MOVE_BUDGET_CAP, lastAt: now };
@@ -131,6 +162,7 @@ export class WorldRoom extends Room<WorldState> {
     // reconnect re-advertises voice readiness from the client.
     this.removeVoiceRelationships(client.sessionId);
     this.voiceReady.delete(client.sessionId);
+    for(const system of this.rides.values())if(system.ride.occupant===client.sessionId)system.stop();
     if (!consented) {
       try {
         // Keep the player in the world during brief disconnects.
@@ -140,6 +172,7 @@ export class WorldRoom extends Room<WorldState> {
         // grace expired — fall through to removal
       }
     }
+    for(const system of this.rides.values())system.release(client.sessionId);
     this.state.players.delete(client.sessionId);
     this.moveBudget.delete(client.sessionId);
     this.chatBudget.delete(client.sessionId);

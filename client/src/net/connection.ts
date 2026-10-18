@@ -3,9 +3,14 @@ import { Client, type Room } from 'colyseus.js';
 export interface NetworkPlayer {
   name: string; colorIndex: number;
   x: number; y: number; z: number; heading: number;
+  rideId?: string;
 }
+export interface NetworkRide {x:number;y:number;z:number;heading:number;speed:number;occupant:string;inputSeq:number}
 export interface NetworkState {
   players: Map<string, NetworkPlayer>;
+  ridesVersion?: number;
+  cartsVersion?: number;
+  rides?: Map<string, NetworkRide>;
 }
 export type GameRoom = Room<NetworkState>;
 

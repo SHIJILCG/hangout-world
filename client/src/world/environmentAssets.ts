@@ -1,3 +1,4 @@
+import { vehicleRoutes, vehicleRouteDistance } from '../../../shared/vehicleRoutes.mjs';
 import world from '../../../shared/world.json';
 import roadsJson from './roads.json';
 import * as THREE from 'three';
@@ -7,7 +8,6 @@ import { createGrass } from './grass';
 
 const ASSETS = {
   pine: '/environment-demo-prototype/PT_Pine_Tree_03_green.glb',
-  bridge: '/environment-demo-prototype/PT_Wooden_Bridge_02.glb',
   fence: '/environment-demo-prototype/PT_Modular_Fence_Wood_02.glb',
   riverRock: '/environment-demo-prototype/PT_River_Rock_Pile_02.glb',
   shrub: '/environment-prototype/PT_Generic_Shrub_01_green.glb',
@@ -23,7 +23,7 @@ const ASSETS = {
 type AssetName = keyof typeof ASSETS;
 
 const FLAT_COLORED_ASSETS = new Set<AssetName>([
-  'pine', 'bridge', 'fence', 'riverRock', 'shrub', 'grass',
+  'pine', 'fence', 'riverRock', 'shrub', 'grass',
 ]);
 
 interface Placement {
@@ -141,7 +141,7 @@ function replaceMaterials(root: THREE.Object3D, kind: AssetName): void {
       const leaves = kind === 'pine' && name.includes('leaves');
       const color = leaves ? 0x579344
         : kind === 'pine' ? 0x765236
-          : kind === 'bridge' || kind === 'fence' ? 0x98704a
+          : kind === 'fence' ? 0x98704a
             : kind === 'riverRock' ? 0x858a76
               : kind === 'grass' ? 0x78a84d
                 : 0x7d9661;
@@ -184,7 +184,9 @@ function addInstances(
     list.push(object); levels.set(level, list);
   });
   const cells = new Map<string, Placement[]>();
+  const clearForVehicles = /pines|trees|rocks|shrubs|fences|grass patches/.test(name);
   for (const p of placements) {
+    if(clearForVehicles && vehicleRouteDistance(p.x,p.z) < vehicleRoutes.clearance + (name.includes('grass')?0:1.5*p.scale))continue;
     const key = Math.floor(p.x / world.sectionSize) + ',' + Math.floor(p.z / world.sectionSize);
     const list = cells.get(key) ?? []; list.push(p); cells.set(key, list);
   }
@@ -261,7 +263,7 @@ export async function addEnvironmentAssets(
   ], 'three-low-poly ruin walls');
   addInstances(target, collision, assets.flagstones, [
     { x: 13, z: 4, scale: 1, rotation: 0 },
-    { x: 13, z: 12, scale: 1, rotation: 0.04 },
+    { x: 20, z: 5, scale: 1, rotation: 0.04 },
   ], 'three-low-poly market flagstones');
   assets.stoneCottage.name = 'cottage_LOD0';
   assets.cottageLow.name = 'cottage_LOD2';
@@ -277,32 +279,6 @@ export async function addEnvironmentAssets(
   const grass = grassPlacements();
   addInstances(target, collision, assets.grass, grass, 'instanced low-poly grass patches');
 
-  const bridgeRotation = -Math.PI / 4;
-  assets.bridge.updateMatrixWorld(true);
-  const bridgeBounds = new THREE.Box3().setFromObject(assets.bridge);
-  // Fit the GLB to the collision span. Its plank tops are at y=0.59 in the
-  // source asset; compress the vertical scale so that surface lands at the
-  // generated deck height (1m), keeping player support and visible boards aligned.
-  const bridgeScale = 6.4 / (bridgeBounds.max.x - bridgeBounds.min.x);
-  const bridgeDeckSurfaceY = 0.59;
-  const bridgeScaleY = 1 / (bridgeDeckSurfaceY - bridgeBounds.min.y);
-  const bridgePivot = bridgeBounds.getCenter(new THREE.Vector3());
-  const bridgeOffset = new THREE.Vector3(bridgePivot.x, 0, bridgePivot.z)
-    .multiplyScalar(bridgeScale)
-    .applyAxisAngle(new THREE.Vector3(0, 1, 0), bridgeRotation);
-  const bridgeX = 30 - bridgeOffset.x;
-  const bridgeZ = 30 - bridgeOffset.z;
-  const bridgeBaseY = collision.groundAt(30, 30) - bridgeBounds.min.y * bridgeScaleY;
-  addInstances(target, collision, assets.bridge, [
-    {
-      x: bridgeX,
-      z: bridgeZ,
-      scale: bridgeScale,
-      scaleY: bridgeScaleY,
-      rotation: bridgeRotation,
-      yOffset: bridgeBaseY - collision.groundAt(bridgeX, bridgeZ),
-    },
-  ], 'Polytope wooden bridge');
   addInstances(target, collision, assets.riverRock, [
     { x: 28, z: 26, scale: 1.4, rotation: 0.4 },
     { x: 32, z: 34, scale: 1.25, rotation: 1.1 },

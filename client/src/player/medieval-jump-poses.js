@@ -24,6 +24,14 @@ const STAND = { thigh: [0, 0], knee: [0, 0], lean: 0, arms: 0 };
 
 // Keyframes: [time (s), pose, planted]
 const CLIPS = {
+  driving: { loop: true, keys: [
+    [0, { thigh: [80, 80], knee: [85, 85], lean: 3, arms: 35 }, false],
+    [1, { thigh: [80, 80], knee: [85, 85], lean: 3, arms: 35 }, false],
+  ] },
+  mounted: { loop: true, keys: [
+    [0, { thigh: [35, 35], knee: [65, 65], lean: 8, arms: 42, spread: 40 }, false],
+    [1, { thigh: [35, 35], knee: [65, 65], lean: 8, arms: 42, spread: 40 }, false],
+  ] },
   // Leaving the ground: legs push straight, arms swing up.
   jumpStart: { loop: false, keys: [
     [0, { thigh: [20, 20], knee: [40, 40], lean: 12, arms: -15 }, false],
@@ -48,6 +56,7 @@ const lerpPose = (a, b, t) => ({
   knee: a.knee.map((v, i) => v + (b.knee[i] - v) * t),
   lean: a.lean + (b.lean - a.lean) * t,
   arms: a.arms + (b.arms - a.arms) * t,
+  spread: (a.spread ?? 0) + ((b.spread ?? 0) - (a.spread ?? 0)) * t,
 });
 
 function poseAt(keys, time) {
@@ -97,9 +106,11 @@ export function createJumpClips(model, idleClip, { fps = 30 } = {}) {
 
   const q = new THREE.Quaternion(), pq = new THREE.Quaternion(), m = new THREE.Matrix4(), one = new THREE.Vector3(1, 1, 1);
   // Set a bone's world rotation to `angle` about the side axis on top of its idle world rotation.
-  const rotate = (name, angle) => {
+  const spreadAxis = new THREE.Vector3(0, 0, 1), spreadRotation = new THREE.Quaternion();
+  const rotate = (name, angle, spread = 0) => {
     const b = bone(name);
     q.setFromAxisAngle(SIDE, angle).multiply(idle.get(name).wq);
+    if (spread) q.premultiply(spreadRotation.setFromAxisAngle(spreadAxis, spread));
     b.parent.getWorldQuaternion(pq);
     b.quaternion.copy(pq.invert().multiply(q));
     b.updateMatrixWorld(true);
@@ -120,8 +131,9 @@ export function createJumpClips(model, idleClip, { fps = 30 } = {}) {
     rotate(BONES.spine, pose.lean * DEG);
     for (let i = 0; i < 2; i++) {
       // thigh + lifts the knee toward +z (forward), which is a negative turn about +x
-      rotate(BONES.thigh[i], -pose.thigh[i] * DEG);
-      rotate(BONES.shin[i], (-pose.thigh[i] + pose.knee[i]) * DEG);
+      const spread = (pose.spread ?? 0) * DEG * (i === 0 ? 1 : -1);
+      rotate(BONES.thigh[i], -pose.thigh[i] * DEG, spread);
+      rotate(BONES.shin[i], (-pose.thigh[i] + pose.knee[i]) * DEG, spread);
       const shin = bone(BONES.shin[i]);
       m.compose(shin.getWorldPosition(new THREE.Vector3()), shin.getWorldQuaternion(new THREE.Quaternion()), one);
       setWorldPosition(BONES.foot[i], footOffset[i].clone().applyMatrix4(m));

@@ -21,6 +21,8 @@ import { ProximityVoice, type IceServerConfig } from './net/proximityVoice';
 import { createVoiceControl, type VoiceControl } from './ui/voiceControl';
 import { PROXIMITY } from './net/proximity';
 import { createGraphics } from './ui/graphics';
+import { HorseRide } from './player/horseRide';
+import { RIDE_DEFINITIONS, rideDefinition, riderPose } from '../../shared/rides';
 
 const SEND_EVERY_N_STEPS = 4; // 60 Hz / 4 = 15 Hz
 const TURN_RESPONSE = 12;
@@ -137,6 +139,8 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
       if (root) hideBubble(root);
     }
   }, (id, muted) => voice.setPeerMuted(id, muted));
+  const rides=RIDE_DEFINITIONS.map(definition=>new HorseRide(map.collision,()=>room,()=>connected&&!chat.isOpen,()=>input.clear(),hud,lifetime.signal,definition));
+  rides.forEach(ride=>scene.add(ride.group));
   window.addEventListener('pagehide', () => {
     lifetime.abort();
     voice.dispose();
@@ -147,6 +151,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
     renderer.setAnimationLoop(null);
     graphics.dispose();
     remotes.clear();
+    rides.forEach(ride=>ride.dispose());
     disposeAvatar(avatar);
     map.dispose();
     renderer.dispose();
@@ -154,6 +159,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
   }, { once: true });
 
   function bindRoom(channel: GameRoom): void {
+    rides.forEach(ride=>ride.bind(channel));
     const $ = getStateCallbacks(channel);
     $(channel.state).players.onAdd((p, sessionId) => {
       roster.add(sessionId, p.name);
@@ -278,6 +284,9 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
   let accumulator = 0;
   let last = performance.now();
   let stepCount = 0;
+  let wasMounted=false;
+  let cameraY=player.y;
+  let rideCameraDistance=0;
 
   renderer.setAnimationLoop(() => {
     const now = performance.now();
@@ -302,9 +311,22 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
       };
       const previousX = player.x;
       const previousZ = player.z;
-      if (connected) player = updatePlayer(player, move, STEP, map.collision);
+      const authoritative=room.state.players.get(room.sessionId);
+      const definition=rideDefinition(authoritative?.rideId);
+      const mounted=!!definition;
+      const activeRide=rides.find(ride=>ride.definition.id===definition?.id);
+      if(wasMounted&&!mounted&&authoritative){
+        player={...createPlayerState(authoritative.x,authoritative.y,authoritative.z),heading:authoritative.heading};
+        avatarHeading=authoritative.heading;input.clear();
+        move.dirX=0;move.dirZ=0;move.jump=false;move.run=false;
+      }
+      let ridePose=null;
+      for(const ride of rides){const pose=ride.step(move,STEP,connected);if(pose)ridePose=pose;}
+      if(ridePose&&definition){player={...player,...riderPose(ridePose,definition),vy:0,onGround:true};avatarHeading=ridePose.heading;}
+      else if(connected&&!mounted)player=updatePlayer(player,move,STEP,map.collision);
+      avatar.userData.mounted=mounted;avatar.userData.driving=definition?.id==='stable-cart';wasMounted=mounted;
       const actualSpeed = Math.hypot(player.x - previousX, player.z - previousZ) / STEP;
-      if (actualSpeed > 0.01) {
+      if (actualSpeed > 0.01 && !mounted) {
         const movementHeading = Math.atan2(player.x - previousX, player.z - previousZ);
         avatarHeading = turnToward(avatarHeading, movementHeading, STEP);
       }
@@ -312,19 +334,28 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
 
       stepCount++;
       if (connected && stepCount % SEND_EVERY_N_STEPS === 0) {
-        room.send('move', { x: player.x, y: player.y, z: player.z, heading: player.heading });
+        if(mounted)activeRide?.send(move);
+        else room.send('move', { x: player.x, y: player.y, z: player.z, heading: player.heading });
       }
       accumulator -= STEP;
     }
 
-    avatar.position.set(player.x, player.y, player.z);
-    avatar.rotation.y = avatarHeading;
+    const frameDt=Math.min(frameMs/1000,.1);
+    const renderedRides=rides.map(ride=>ride.render(frameDt,player,connected));
+    const renderedRide=renderedRides.find(ride=>ride?.occupant===room.sessionId);
+    const localSeat=renderedRide?.occupant===room.sessionId&&wasMounted?renderedRide.pose:null;
+    avatar.position.set(localSeat?.x??player.x,localSeat?.y??player.y,localSeat?.z??player.z);
+    avatar.rotation.y = localSeat?.heading??avatarHeading;
+    for(const id of room.state.players.keys())if(id!==room.sessionId){const ride=renderedRides.find(ride=>ride?.occupant===id);remotes.setRidePose(id,ride?.pose??null,ride?.driving);}
     remotes.tick(Math.min(frameMs / 1000, 0.1), player.x, player.z);
     voice.tick();
 
     const off = orbit.offset();
-    camera.position.set(player.x + off.x, player.y + off.y, player.z + off.z);
-    camera.lookAt(player.x, player.y + 1.5, player.z);
+    const cameraBlend=1-Math.exp(-8*frameDt);
+    cameraY+=(avatar.position.y-cameraY)*cameraBlend;
+    rideCameraDistance+=((wasMounted ? .25 : 0)-rideCameraDistance)*cameraBlend;
+    camera.position.set(avatar.position.x + off.x*(1+rideCameraDistance), cameraY + off.y, avatar.position.z + off.z*(1+rideCameraDistance));
+    camera.lookAt(avatar.position.x, cameraY + 1.5, avatar.position.z);
 
     map.update(player.x, player.y, player.z, now, graphics.quality);
     renderer.render(scene, camera);

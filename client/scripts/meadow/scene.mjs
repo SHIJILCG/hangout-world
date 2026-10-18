@@ -1,3 +1,4 @@
+import { vehicleRoutes, vehicleRouteDistance } from '../../../shared/vehicleRoutes.mjs';
 import world from '../../../shared/world.json' with { type: 'json' };
 import { forestAt } from './biomes.mjs';
 import * as THREE from 'three';
@@ -14,8 +15,8 @@ export const SPEC = Object.freeze({
   riverWidth: 4,
   bridgeCenter: 30,
   bridgeHeight: 1,
-  bridgeEndHeight: 0.56,
-  bridgeRise: 0.14,
+  bridgeEndHeight: 1,
+  bridgeRise: 0.25,
   ruinRise: 0.3,
   maxTriangles: 2 * (world.half * 2 / world.terrainSpacing) ** 2 + 45000,
 });
@@ -49,6 +50,7 @@ function segmentDistance(x, z, a, b) {
 }
 
 export const pathCurves = [
+  ...vehicleRoutes.routes,
   // Main roads connect the plaza to every edge and remain curved rather than
   // becoming a grid when the playable square expands.
   [[-SPEC.playableHalf, 7], [-100, 7], [-78, 7], [-55, 7], [-39, 5], [-23, 3], [-12, 9]],
@@ -160,7 +162,8 @@ export function buildMeadow() {
       }
       if (Math.abs(riverV(x, z)) >= 2 && Math.hypot(x, z) > 12) {
         const { distance, offset } = nearestRoadDetails(x, z);
-        const roadBlend = 1 - smooth((distance - 1.35) / 1.45);
+        const vehicleDistance = vehicleRouteDistance(x,z);
+        const roadBlend = Math.max(1 - smooth((distance - 1.35) / 1.45),1 - smooth((vehicleDistance - vehicleRoutes.halfWidth + .6) / 1.2));
         if (roadBlend > 0) {
           const grain = 0.94 + 0.045 * Math.sin(x * 1.63 + z * 0.71) * Math.cos(z * 1.31 - x * 0.47);
           const roadColor = roadBase.clone().multiplyScalar(grain);
@@ -222,35 +225,25 @@ export function buildMeadow() {
   }
 
   const bridgeRotation = -Math.PI / 4;
-  box('Bridge deck', SPEC.bridgeCenter, SPEC.bridgeCenter, 6.4, 0.22, 3.2, '#b6b8a2', 0.78, bridgeRotation,
-    { role: 'bridge-deck', walkable: true, top: 1 });
-  for (const side of [-1, 1]) {
-    for (let i = 0; i < 4; i++) {
-      const top = SPEC.bridgeRise * (i + 1);
-      const [x, z] = bridgePoint(side * (6 - i * 0.8));
-      box(`Bridge ${side < 0 ? 'west' : 'east'} step ${i + 1}`, x, z, 0.8, top, 3.2,
-        choose(palette.stone), 0, bridgeRotation,
-        { role: 'bridge-step', route: `bridge-${side}`, step: i + 1, top, rise: SPEC.bridgeRise, run: 0.8, walkable: true });
+  box('Bridge deck',30,30,6.4,.22,6,'#937047',.78,bridgeRotation,
+    {role:'bridge-deck',walkable:true,top:1});
+  for(const side of [-1,1]) {
+    for(let i=0;i<4;i++) {
+      const outer=11-i*1.95, inner=outer-1.95, top=(i+1)*.25;
+      const [x,z]=bridgePoint(side*(outer+inner)/2);
+      const geometry=new THREE.BoxGeometry(1.95,.15,6);
+      const positions=geometry.attributes.position;
+      for(let j=0;j<positions.count;j++)positions.setY(j,positions.getY(j)-side*positions.getX(j)*(.25/1.95));
+      add('Bridge '+(side<0?'west':'east')+' step '+(i+1),geometry,'#98734f',
+        [x,top-.125-.075,z],[1,1,1],bridgeRotation,
+        {role:'bridge-step',route:'bridge-'+side,step:i+1,top,rise:.25,run:1.95,walkable:true});
     }
-    const sideShape = new THREE.Shape();
-    sideShape.moveTo(-3.2, -0.65);
-    sideShape.lineTo(-3.2, 0.8);
-    sideShape.lineTo(3.2, 0.8);
-    sideShape.lineTo(3.2, -0.65);
-    sideShape.lineTo(2.7, -0.65);
-    for (let i = 0; i <= 12; i++) {
-      const a = i * Math.PI / 12;
-      sideShape.lineTo(2.7 * Math.cos(a), -0.55 + 1.18 * Math.sin(a));
+    for(let i=0;i<9;i++) {
+      const [x,z]=bridgePoint(-3.2+i*.8,side*3.12);
+      box('Bridge parapet '+side+' '+i,x,z,.16,1.1,.16,'#65492f',.95,bridgeRotation,{role:'bridge-parapet'});
     }
-    sideShape.lineTo(-3.2, -0.65);
-    const [sx, sz] = bridgePoint(0, side * 1.32);
-    add(`Bridge arched stone wall ${side}`, new THREE.ExtrudeGeometry(sideShape, { depth: 0.3, bevelEnabled: false }),
-      '#969f93', [sx, 0, sz], [1, 1, 1], bridgeRotation, { role: 'bridge-structure' });
-    for (let i = 0; i < 8; i++) {
-      const [x, z] = bridgePoint(-2.8 + i * 0.8, side * 1.42);
-      box(`Bridge parapet ${side} ${i}`, x, z, 0.77, 0.5, 0.32,
-        choose(palette.stone), 1, bridgeRotation, { role: 'bridge-parapet' });
-    }
+    const [x,z]=bridgePoint(0,side*3.12);
+    for(const y of [1.4,1.9])box('Bridge rail '+side+' '+y,x,z,6.6,.12,.12,'#80603f',y,bridgeRotation,{role:'bridge-structure'});
   }
 
   const archX = -18, archZ = -16;
@@ -332,7 +325,7 @@ export function buildMeadow() {
   add('Town hall roof', new THREE.ConeGeometry(3.8, 2.2, 4), '#7f5148',
     [-15, groundHeight(-15, 8) + 3.7, 8], [1, 1, 0.8], Math.PI / 4,
     { role: 'building-roof', zone: 'town' });
-  for (const [x, z] of [[13, 4], [13, 12]]) {
+  for (const [x, z] of [[13, 4], [20, 5]]) {
     box(`Town market stall ${x} ${z}`, x, z, 3, 1.5, 2, '#a9794d', groundHeight(x, z), 0,
       { role: 'building', zone: 'town' });
     add(`Town market canopy ${x} ${z}`, new THREE.ConeGeometry(2.1, 1.2, 4), '#b94f46',
@@ -503,5 +496,13 @@ export function buildMeadow() {
   add('Backdrop blue lake', new THREE.CircleGeometry(1, 13).rotateX(-Math.PI / 2), '#529fa9',
     [world.half+53, -0.8, -world.half-11], [28, 1, 15], 0.2, { role: 'backdrop', visualOnly: true });
 
-  return { meshes, spec: SPEC };
+  const clearable=new Set(['fence','rock','tree-trunk','tree-canopy']);
+  const kept=meshes.filter(mesh=>{
+    if(!clearable.has(mesh.extras.role))return true;
+    mesh.geometry.computeBoundingBox();const bounds=mesh.geometry.boundingBox;
+    const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
+    if(vehicleRouteDistance(center.x,center.z)>vehicleRoutes.clearance+Math.hypot(size.x,size.z)/2)return true;
+    mesh.geometry.dispose();return false;
+  });
+  return { meshes:kept, spec: SPEC };
 }

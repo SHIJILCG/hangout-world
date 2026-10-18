@@ -66,8 +66,8 @@ export async function loadAvatar(root: THREE.Group, characterIndex = 0): Promise
     const jumpClips = clips.get('Idle') ? createJumpClips(model, clips.get('Idle')!) : null;
     const mixer = new THREE.AnimationMixer(model);
     const actions = new Map<string, THREE.AnimationAction>();
-    for (const state of ['Idle', 'Walk', 'Run', 'jumpStart', 'air', 'land']) {
-      const clip = jumpClips?.[state as 'jumpStart' | 'air' | 'land'] ?? clips.get(state);
+    for (const state of ['Idle', 'Walk', 'Run', 'jumpStart', 'air', 'land', 'mounted', 'driving']) {
+      const clip = jumpClips?.[state as 'jumpStart' | 'air' | 'land' | 'mounted' | 'driving'] ?? clips.get(state);
       if (!clip) continue;
       const action = mixer.clipAction(clip);
       const oneShot = state === 'jumpStart' || state === 'land';
@@ -123,6 +123,7 @@ function playAnimation(root: THREE.Group, state: string, fade = 0.16): void {
 export function animateAvatar(root: THREE.Group, _time: number, speed: number, onGround: boolean, dt: number): void {
   const rig = animations.get(root);
   if (!rig) return;
+  if(root.userData.mounted){playAnimation(root,root.userData.driving?'driving':'mounted');rig.grounded=true;rig.landTime=0;rig.mixer.update(dt);return;}
   let state: string;
   if (!onGround) {
     if (rig.grounded) rig.airTime = 0;

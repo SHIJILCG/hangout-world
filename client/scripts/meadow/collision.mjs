@@ -1,3 +1,4 @@
+import { bridgeSurface } from '../../../shared/vehicleRoutes.mjs';
 // Derives the collision manifest (heightfield grid + AABB boxes) consumed by
 // client/src/world/collision.ts from the same generator source of truth as
 // the GLB (buildMeadow's meshes/extras + scene.mjs's exported helpers).
@@ -10,8 +11,8 @@ const round3 = (n) => Math.round(n * 1000) / 1000;
 const SKIP_ROLES = new Set([
   'flowers', 'river', 'river-detail', 'pond', 'pond-shore', 'tree-canopy',
   'terrain', 'backdrop', 'building-roof', 'furniture', 'activity', 'countryside-detail',
-  // The authored wooden bridge replaces these generated meshes; retaining
-  // their broad AABB blockers would trap players behind invisible rails.
+  // Bridge rails use narrow rotated cells in bridgeDeckBoxes; broad mesh
+  // AABBs would obstruct the lane diagonally between the visible rails.
   'bridge-parapet', 'bridge-structure',
 ]);
 // WHOLE-MESH AABB blockers.
@@ -95,21 +96,23 @@ function cellsFromCorners(vRanges, uRanges, minY, maxY) {
 
 function bridgeDeckBoxes() {
   const boxes = [];
-  const deckTopAt = (v) => SPEC.bridgeEndHeight
-    + (SPEC.bridgeHeight - SPEC.bridgeEndHeight) * (1 - (v / 3.2) ** 2);
   for (let v0 = -3.2; v0 < 3.2 - 1e-6; v0 += 0.2) {
     const v1 = Math.min(3.2, v0 + 0.2);
-    const top = deckTopAt((v0 + v1) / 2);
-    boxes.push(...cellsFromCorners([[v0, v1]], span(-1.6, 1.6, 0.5), Math.max(0, top - 0.22), top));
+    boxes.push(...cellsFromCorners([[v0,v1]],span(-3,3,.5),.78,1));
   }
+  for(const side of [-1,1])boxes.push(...cellsFromCorners(span(-3.3,3.3,.2),[[side*3.12-.08,side*3.12+.08]],.95,2.05));
   return boxes;
 }
 
 function bridgeStepBoxes(mesh) {
   const { step, top, route } = mesh.extras;
   const side = route === 'bridge--1' ? -1 : 1;
-  const center = side * (6 - 0.8 * (step - 1));
-  return cellsFromCorners([[center - 0.4, center + 0.4]], span(-1.6, 1.6, 0.5), 0, top);
+  const outer=11-1.95*(step-1),inner=outer-1.95,boxes=[];
+  for(const [v0,v1] of span(side<0?-outer:inner,side<0?-inner:outer,.1)) {
+    const height=bridgeSurface((v0+v1)/2);
+    boxes.push(...cellsFromCorners([[v0,v1]],span(-3,3,.5),height-.15,height));
+  }
+  return boxes;
 }
 
 export function buildCollisionManifest() {

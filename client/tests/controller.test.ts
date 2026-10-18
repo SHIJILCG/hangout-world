@@ -43,9 +43,9 @@ describe('walking and running', () => {
 });
 
 describe('bridge traversal', () => {
-  it('walks over both bank approaches and the curved deck without falling through', () => {
+  it('walks over both shallow ramps and the wide deck without falling through', () => {
     const world = buildCollision();
-    for (const startV of [-8, 8]) {
+    for (const startV of [-13, 13]) {
       const [x, z] = bridgePoint(startV);
       const direction = startV < 0 ? 1 : -1;
       let state = createPlayerState(x, world.groundAt(x, z), z);
@@ -53,7 +53,7 @@ describe('bridge traversal', () => {
       let airFrames = 0;
       let maxAirFrames = 0;
       let airLocation = '';
-      for (let i = 0; i < 240; i++) {
+      for (let i = 0; i < 420; i++) {
         state = updatePlayer(state, { ...idle, dirX: direction, dirZ: direction }, DT, world);
         if (!state.onGround && airFrames === 0) airLocation = `frame=${i} x=${state.x.toFixed(2)} y=${state.y.toFixed(2)} z=${state.z.toFixed(2)} support=${world.supportHeightAt(state.x, state.z, state.y, 0.4).toFixed(2)}`;
         airFrames = state.onGround ? 0 : airFrames + 1;

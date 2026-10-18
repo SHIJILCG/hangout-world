@@ -75,7 +75,7 @@ export function regionalLayout(pathDistance) {
   add('sign_river',216,-158,1,-Math.PI/4);
   // Village pilot: preserve the plaza and the existing market footprint.
   add('village_stall',13,4);
-  add('village_stall',13,12);
+  add('village_stall',20,5);
   add('village_well',24,12);
   add('village_bench',24,8,1,Math.PI/2);
   add('village_bench',21,12,1,Math.PI/2);

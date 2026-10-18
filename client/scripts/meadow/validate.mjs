@@ -130,7 +130,7 @@ export function validateMeadow(buffer) {
     deckU.push((deck.positions[i] - deck.positions[i + 2]) / Math.SQRT2);
   }
   near(Math.max(...deckV) - Math.min(...deckV), 6.4, 'Unscaled bridge deck length');
-  near(Math.max(...deckU) - Math.min(...deckU), 3.2, 'Unscaled bridge deck width');
+  near(Math.max(...deckU) - Math.min(...deckU), 6, 'Unscaled bridge deck width');
   near(deck.max[1], 1, 'Bridge deck height');
   near(crown.max[1], 3.6, 'Ruin crown height');
 
@@ -140,7 +140,8 @@ export function validateMeadow(buffer) {
     let previous = 0;
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
-      near(step.min[1], 0, 'Steps start on bank/ground');
+      if(name==='ruin')near(step.min[1], 0, 'Steps start on bank/ground');
+      else near(step.min[1],i*.25-.15,'Ramp underside follows its slope');
       near(step.max[1] - previous, rise, 'Measured step rise');
       assert.ok(step.max[1] - previous <= 0.3 + EPS);
       assert.equal(step.extras.walkable, true);
@@ -156,17 +157,17 @@ export function validateMeadow(buffer) {
         }
         const side = name === 'bridge--1' ? -1 : 1;
         const distance = localV.map((v) => v * side);
-        near(Math.min(...distance), 5.6 - i * 0.8, 'Bridge stair inner edge');
-        near(Math.max(...distance), 6.4 - i * 0.8, 'Bridge stair outer edge');
-        near(Math.max(...localU) - Math.min(...localU), 3.2, 'Bridge stair width');
+        near(Math.min(...distance), 9.05 - i * 1.95, 'Bridge stair inner edge');
+        near(Math.max(...distance), 11 - i * 1.95, 'Bridge stair outer edge');
+        near(Math.max(...localU) - Math.min(...localU), 6, 'Bridge ramp width');
       }
       previous = step.max[1];
     }
     near(previous, targetHeight, 'Route meets destination height');
     if (name === 'ruin') near(steps.at(-1).min[2], target.max[2], 'Ruin steps meet crown');
   }
-  route('bridge--1', 4, 0.14, 0.56);
-  route('bridge-1', 4, 0.14, 0.56);
+  route('bridge--1', 4, 0.25, 1);
+  route('bridge-1', 4, 0.25, 1);
   route('ruin', 12, 0.3, crown.max[1], crown);
   const treeCount = nodes.filter((n) => n.extras.role === 'tree-trunk').length;
   assert.ok(treeCount >= 70 && treeCount <= 85);

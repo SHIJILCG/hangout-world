@@ -62,11 +62,11 @@ describe('buildCollision (meadow heightfield + generator boxes)', () => {
   });
 
   it('a player can WALK across the bridge', () => {
-    // bridgePoint(-8) sits on dry ground short of the west ramp; walking
+    // bridgePoint(-13) sits on dry ground short of the west ramp; walking
     // dir (1,1) (normalized) moves purely along the bridge's v-axis (the
     // (1,1)/sqrt2 world direction is exactly the v unit vector), climbing
-    // the 0.25 m steps up onto the 1.0 m deck and back down the far side.
-    const [sx, sz] = bridgePoint(-8, 0);
+    // the shallow ramps up onto the 1.0 m deck and back down the far side.
+    const [sx, sz] = bridgePoint(-13, 0);
     const collisionStart = { x: sx, y: collision.groundAt(sx, sz), z: sz };
     const input: MoveInput = { dirX: 1, dirZ: 1, run: false, jump: false };
 
@@ -89,7 +89,7 @@ describe('buildCollision (meadow heightfield + generator boxes)', () => {
   it('a player can WADE the river away from the bridge', () => {
     // 10 m off the bridge axis (u = -10): no deck/steps here, so walking
     // straight across dips down into the riverbed and back up the far bank.
-    const [sx, sz] = bridgePoint(-8, -10);
+    const [sx, sz] = bridgePoint(-13, -10);
     const collisionStart = { x: sx, y: collision.groundAt(sx, sz), z: sz };
     const input: MoveInput = { dirX: 1, dirZ: 1, run: false, jump: false };
 
