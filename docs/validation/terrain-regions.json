@@ -1,0 +1,26 @@
+[
+  {
+    "name": "orchard",
+    "height": 4,
+    "sections": 65,
+    "draws": 49
+  },
+  {
+    "name": "courtyard",
+    "height": 3.200000047683716,
+    "sections": 62,
+    "draws": 135
+  },
+  {
+    "name": "birch",
+    "height": 3.782333294550578,
+    "sections": 59,
+    "draws": 67
+  },
+  {
+    "name": "pine",
+    "height": 3.4876666598849826,
+    "sections": 58,
+    "draws": 120
+  }
+]

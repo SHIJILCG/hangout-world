@@ -1,9 +1,10 @@
+import world from '../../../shared/world.json';
 import * as THREE from 'three';
 
 export function createAtmosphere(): THREE.Group {
   const group = new THREE.Group();
   const sky = new THREE.Mesh(
-    new THREE.SphereGeometry(350, 24, 12),
+    new THREE.SphereGeometry(world.half*2.5, 24, 12),
     new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false,
       uniforms: {
@@ -27,7 +28,7 @@ export function createAtmosphere(): THREE.Group {
   for (let i = 0; i < 12; i++) {
     const angle = i * Math.PI * 2 / 12;
     for (let j = 0; j < 3; j++) {
-      cloud.position.set(Math.cos(angle) * 190 + j * 6, 45 + (i % 3) * 9, Math.sin(angle) * 190);
+      cloud.position.set(Math.cos(angle) * (world.half*1.7) + j * 6, 45 + (i % 3) * 9, Math.sin(angle) * (world.half*1.7));
       cloud.scale.set(10, 3 + j, 5);
       cloud.updateMatrix();
       clouds.setMatrixAt(i*3+j,cloud.matrix);
@@ -38,16 +39,16 @@ export function createAtmosphere(): THREE.Group {
 
   // Visual-only valley floor hides the gap between the playable tile and backdrop.
   const outer = new THREE.Shape();
-  outer.moveTo(-280, -280);
-  outer.lineTo(280, -280);
-  outer.lineTo(280, 280);
-  outer.lineTo(-280, 280);
+  outer.moveTo(-world.half*2.4, -world.half*2.4);
+  outer.lineTo(world.half*2.4, -world.half*2.4);
+  outer.lineTo(world.half*2.4, world.half*2.4);
+  outer.lineTo(-world.half*2.4, world.half*2.4);
   outer.closePath();
   const opening = new THREE.Path();
-  opening.moveTo(-120, -120);
-  opening.lineTo(-120, 120);
-  opening.lineTo(120, 120);
-  opening.lineTo(120, -120);
+  opening.moveTo(-world.half, -world.half);
+  opening.lineTo(-world.half, world.half);
+  opening.lineTo(world.half, world.half);
+  opening.lineTo(world.half, -world.half);
   opening.closePath();
   outer.holes.push(opening);
   const valley = new THREE.Mesh(

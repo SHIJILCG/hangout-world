@@ -1,0 +1,56 @@
+{
+  "reports": [
+    {
+      "sign": "sign_woods",
+      "visible": {
+        "forest_oak": 523,
+        "forest_shrub": 189,
+        "grass": 212,
+        "forest_birch": 87,
+        "forest_log": 4,
+        "forest_floor_patch": 6,
+        "sign_woods": 1,
+        "lantern": 1
+      }
+    },
+    {
+      "sign": "sign_farm",
+      "visible": {
+        "forest_oak": 3,
+        "forest_shrub": 12,
+        "apple": 10,
+        "fence": 30,
+        "grass": 200,
+        "orchard_crop_display": 2,
+        "village_storage": 3,
+        "sign_farm": 1,
+        "lantern": 1,
+        "orchard_cart": 1,
+        "forest_birch": 50
+      }
+    },
+    {
+      "sign": "sign_river",
+      "visible": {
+        "grass": 167,
+        "sign_river": 1,
+        "rock": 11,
+        "riverside_platform": 1,
+        "riverside_gear": 1,
+        "village_bench": 1,
+        "lantern": 1,
+        "forest_oak": 122,
+        "forest_shrub": 42,
+        "forest_birch": 16,
+        "forest_pine": 11
+      }
+    }
+  ],
+  "errors": [],
+  "failed": [],
+  "graphics": "production 1280x720",
+  "effects": [
+    "shared grass wind",
+    "emissive lanterns"
+  ]
+}

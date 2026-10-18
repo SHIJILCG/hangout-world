@@ -1,0 +1,57 @@
+{
+  "reports": [
+    {
+      "place": "North Woods",
+      "sections": 65,
+      "draws": 99,
+      "triangles": 92823,
+      "visible": {
+        "forest_oak": 529,
+        "forest_shrub": 191,
+        "forest_birch": 87,
+        "grass": 247,
+        "village_bench": 1,
+        "forest_log": 6,
+        "forest_floor_patch": 8,
+        "lantern": 1
+      }
+    },
+    {
+      "place": "Orchard Farm",
+      "sections": 58,
+      "draws": 48,
+      "triangles": 75683,
+      "visible": {
+        "apple": 10,
+        "fence": 30,
+        "lantern": 1,
+        "grass": 186,
+        "orchard_cart": 1,
+        "orchard_crop_display": 3,
+        "village_storage": 4,
+        "forest_birch": 74,
+        "forest_shrub": 19,
+        "rock": 1
+      }
+    },
+    {
+      "place": "Riverside Clearing",
+      "sections": 54,
+      "draws": 93,
+      "triangles": 50151,
+      "visible": {
+        "rock": 11,
+        "lantern": 1,
+        "grass": 256,
+        "riverside_platform": 1,
+        "riverside_gear": 1,
+        "village_bench": 1,
+        "forest_oak": 162,
+        "forest_shrub": 71,
+        "forest_birch": 21,
+        "forest_pine": 65
+      }
+    }
+  ],
+  "failed": []
+}

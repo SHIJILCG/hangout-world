@@ -1,3 +1,4 @@
+import world from '../../shared/world.json';
 import { describe, it, expect } from 'vitest';
 import { buildCollision, WORLD_HALF, SPAWN } from '../src/world/map';
 import { PLAYER_RADIUS, createPlayerState, updatePlayer, type MoveInput } from '../src/player/controller';
@@ -46,8 +47,8 @@ describe('buildCollision (meadow heightfield + generator boxes)', () => {
     expect(r).toEqual({ x: SPAWN.x, z: SPAWN.z });
   });
 
-  it('world and collision boundary cover a 240m square', () => {
-    expect(WORLD_HALF).toBe(120);
+  it('world and collision boundary match the shared world specification', () => {
+    expect(WORLD_HALF).toBe(world.half);
     expect(collision.groundAt(119, 119)).toBeCloseTo(groundHeight(119, 119), 1);
   });
 

@@ -1,5 +1,9 @@
 # Environment performance plan
 
+The original performance pass below covered the 240m map. The world is now 480m;
+see [current implementation notes](map-expansion-implementation.md) for updated
+payload sizes, streaming behavior, assets and validation results.
+
 Implement in this order:
 
 1. Generate 30m map chunks, merge static geometry within each chunk, omit replaced houses/bridge pieces, and provide coarse terrain while detail streams. Bound concurrent requests, retry failed sections, and unload distant geometry.

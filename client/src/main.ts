@@ -68,7 +68,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xd4e8da);
-  scene.fog = new THREE.Fog(0xd4e8da, 130, 390);
+  scene.fog = new THREE.Fog(0xd4e8da, 130, 650);
   scene.add(map.group);
   scene.add(createAtmosphere());
   const hud = document.createElement('aside');
@@ -77,7 +77,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
   document.body.append(hud);
   const graphics = createGraphics(renderer, map, hud);
 
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 550);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1400);
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;

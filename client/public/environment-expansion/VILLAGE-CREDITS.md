@@ -1,0 +1,1 @@
+Village props are original Hangout World assemblies of Three.js primitives. Cottage models retain the attribution in environment-library/CREDITS.md. Regenerate with node scripts/export-village-assets.mjs after exporting expansion assets and cottage LODs.

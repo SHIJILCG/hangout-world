@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const tabs=await fetch('http://127.0.0.1:9222/json').then(r=>r.json());
-const tab=tabs.find(t=>t.type==='page' && !t.url.startsWith('edge:'));
+const tab=tabs.find(t=>t.type==='page' && !t.url.startsWith('edge:') && (!process.env.TARGET_ID||t.id===process.env.TARGET_ID));
 if (!tab) throw new Error('No test browser tab');
 const ws=new WebSocket(tab.webSocketDebuggerUrl);
 await new Promise((resolve,reject)=> { ws.onopen=resolve; ws.onerror=reject; });
@@ -42,7 +42,9 @@ async function screenshot(label) {
 }
 async function sample(label) {
   await pause(2200);
-  console.log(label,await evaluate(`({stats:document.querySelector('#world-hud details small')?.textContent, chunks:performance.getEntriesByType('resource').filter(r=>r.name.includes('/models/chunks/')&&r.name.endsWith('.glb')).length, canvas:[document.querySelector('canvas')?.width,document.querySelector('canvas')?.height]})`));
+  const result=await evaluate(`({stats:document.querySelector('#world-hud details small')?.textContent, chunks:performance.getEntriesByType('resource').filter(r=>r.name.includes('/models/chunks/')&&r.name.endsWith('.glb')).length, regionalAssets:[...new Set(performance.getEntriesByType('resource').filter(r=>r.name.includes('/environment-expansion/')&&r.name.endsWith('.glb')).map(r=>new URL(r.name).pathname.split('/').pop()))].sort(), canvas:[document.querySelector('canvas')?.width,document.querySelector('canvas')?.height]})`);
+  console.log(label,result);
+  return result;
 }
 try {
   await send('Runtime.enable'); await send('Network.enable'); await send('Page.enable');
@@ -52,7 +54,9 @@ try {
   await evaluate("document.querySelector('#join-name').value='PerfCheck'; document.querySelector('#join-btn').click()");
   await until("!document.querySelector('#join-screen') && Boolean(document.querySelector('#world-hud'))");
   await evaluate("document.querySelector('#world-hud details').open=true; const checkbox=document.querySelector('#world-hud input'); checkbox.checked=true; checkbox.dispatchEvent(new Event('change'));");
-  await sample('spawn'); await screenshot('spawn');
+  const spawn=await sample('spawn');
+  if(!spawn.regionalAssets.length)throw new Error('Playable game did not request regional prop GLBs at spawn');
+  await screenshot('spawn');
   for (const preset of ['0','1','2','auto']) {
     await evaluate(`{ const select=document.querySelector('#world-hud select'); select.value='${preset}'; select.dispatchEvent(new Event('change')); select.blur(); }`);
     await sample('quality '+preset);

@@ -1,7 +1,8 @@
 # Map expansion and local asset plan
 
-Status: proposed next implementation, not yet applied. The current playable map
-remains 240 × 240 metres. This plan accompanies the tested performance changes.
+Status: implemented at 480 × 480 metres after generating and checking the 360m
+intermediate map. See [current implementation notes](map-expansion-implementation.md)
+for shipped features, checks, measured payload sizes, and remaining limits.
 
 ## Target and sequence
 
