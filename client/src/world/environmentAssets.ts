@@ -4,7 +4,7 @@ import roadsJson from './roads.json';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { CollisionWorld } from './collision';
-import { createGrass } from './grass';
+import { createGrass, GRASS_DISTANCES, grassDensityStride } from './grass';
 
 const ASSETS = {
   pine: '/environment-demo-prototype/PT_Pine_Tree_03_green.glb',
@@ -191,7 +191,7 @@ function addInstances(
     const list = cells.get(key) ?? []; list.push(p); cells.set(key, list);
   }
   const grass = name.includes('grass patches');
-  const distances = grass ? [0, 28, 52, 75] : [0, 40, 85, 170];
+  const distances = grass ? GRASS_DISTANCES : [0, 40, 85, 170];
   const geometries = new Map<THREE.Mesh, THREE.BufferGeometry>();
   const axis = new THREE.Vector3(0, 1, 0);
   for (const [key, cell] of cells) {
@@ -204,7 +204,7 @@ function addInstances(
       for (const source of levels.get(chosen) ?? []) {
         let geometry = geometries.get(source);
         if (!geometry) { geometry = source.geometry.clone().applyMatrix4(source.matrixWorld); geometries.set(source, geometry); }
-        const selected = grass ? cell.filter((_,i)=>i % (level+1) === 0) : cell;
+        const selected = grass ? cell.filter((_,i)=>i % grassDensityStride(level) === 0) : cell;
         const instances = new THREE.InstancedMesh(geometry, source.material, selected.length);
         instances.name = name;
         instances.castShadow = !grass && level === 0;

@@ -27,7 +27,7 @@ it('applies catalog distance and shadow policies to streamed props',async()=>{
   assets.dispose();
 });
 
-it('animates grass through one shared uniform and warms lanterns without extra lights',async()=>{
+it('keeps grass static and opaque and warms lanterns without extra lights',async()=>{
   vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({sections:{
     '0,0':[
       {asset:'grass',x:15,y:0,z:15,scale:1,rotation:0},
@@ -45,13 +45,12 @@ it('animates grass through one shared uniform and warms lanterns without extra l
   const grass=meshes.find(mesh=>mesh.userData.detail.asset==='grass')!;
   const lantern=meshes.find(mesh=>mesh.userData.detail.asset==='lantern')!;
   const grassMaterial=grass.material as THREE.MeshStandardMaterial,lanternMaterial=lantern.material as THREE.MeshStandardMaterial;
-  expect(grassMaterial.customProgramCacheKey()).toBe('hangout-grass-wind-v1');
-  const shader={uniforms:{} as Record<string,{value:number}>,vertexShader:'#include <common>\n#include <begin_vertex>'};
-  grassMaterial.onBeforeCompile(shader as unknown as THREE.WebGLProgramParametersWithUniforms,{} as THREE.WebGLRenderer);
-  expect(shader.vertexShader).toContain('uEnvironmentWind');expect(shader.vertexShader).toContain('windFlex');
+  expect(grassMaterial.vertexColors).toBe(true);
+  expect(grassMaterial.transparent).toBe(false);
+  expect(grass.castShadow).toBe(false);
+  expect(grassMaterial.onBeforeCompile).toBe(THREE.Material.prototype.onBeforeCompile);
   expect(lanternMaterial.emissive.getHex()).toBe(0xffa447);expect(lanternMaterial.emissiveIntensity).toBe(0.55);
-  assets.update(['0,0'],15,15,300,2);expect(shader.uniforms.uEnvironmentWind.value).toBe(0.3);
-  assets.update(['0,0'],15,15,600,0);expect(shader.uniforms.uEnvironmentWind.value).toBe(0);
+
   assets.dispose();
 });
 
@@ -109,4 +108,21 @@ it('releases a template whose section was evicted while its request was pending'
   complete({scene:source} as unknown as GLTF);
   await vi.waitFor(()=>expect(cancelledDisposed).toHaveBeenCalledTimes(1));
   expect(disposed).not.toHaveBeenCalled();expect(assets.templateCount).toBe(0);expect(assets.instanceCount).toBe(0);assets.dispose();
+});
+
+it('thins regional grass with distance and scales its range with quality',async()=>{
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({sections:{
+    '0,0':Array.from({length:8},(_,i)=>({asset:'grass',x:15+i*.1,y:0,z:15,scale:1,rotation:0})),
+  }})}));
+  const assets=new RegionalAssets();await assets.initialize();assets.update(['0,0'],15,15,0,2);
+  await vi.waitFor(()=>expect(assets.instanceCount).toBe(20));
+  const meshes=assets.group.children[0].children as THREE.InstancedMesh[];
+  expect(meshes.map(m=>m.count)).toEqual([8,8,4]);
+  const matrices=meshes.map(m=>Array.from(m.instanceMatrix.array));
+  for(const [x,now,quality,lod] of [[15,300,2,0],[45,600,2,1],[70,900,2,2],[91,1200,2,-1],[65,1500,0,-1],[40,1800,0,1]]){
+    assets.update(['0,0'],x,15,now,quality);
+    expect(meshes.filter(m=>m.visible).map(m=>m.userData.detail.lod)).toEqual(lod<0?[]:[lod]);
+  }
+  expect(meshes.map(m=>Array.from(m.instanceMatrix.array))).toEqual(matrices);
+  expect(meshes.every(m=>!m.castShadow)).toBe(true);assets.dispose();
 });

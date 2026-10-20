@@ -1,0 +1,217 @@
+{
+  "date": "2026-10-19T14:44:50.262Z",
+  "hardware": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+    "gpu": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001638) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "threads": 12
+  },
+  "before": "http://127.0.0.1:4175",
+  "after": "http://127.0.0.1:4176",
+  "cycles": 3,
+  "sampleMs": 20000,
+  "quality": 2,
+  "places": [
+    {
+      "name": "Forest clearing",
+      "x": -25,
+      "z": -174,
+      "yaw": 0
+    }
+  ],
+  "method": "Headless Chrome; production environment preview; fixed player-height camera; three real Colyseus clients, their avatars rebased into each view; voice/chat and ride rendering excluded. Interleaved version order; same streaming warm-up. CPU submission excludes GPU completion. Geometry/texture counts are allocation proxies, not VRAM bytes.",
+  "errors": [],
+  "samples": [
+    {
+      "version": "before",
+      "place": "Forest clearing",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 60.01729057663574,
+      "meanMs": 16.661865112406325,
+      "p50Ms": 16.69999999999709,
+      "p95Ms": 17,
+      "p99Ms": 17.19999999999891,
+      "over33ms": 0,
+      "cpuSubmissionMs": 5.098417985039785,
+      "draws": 114,
+      "triangles": 91793,
+      "geometries": 107,
+      "textures": 50,
+      "sections": 65,
+      "regionalInstances": 4713,
+      "grassInstances": 291,
+      "grassDraws": 17,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "xCE3Sso3h",
+          "gP9ZEKv9K",
+          "lhyqa4Kaw"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 13.914817810058594
+    },
+    {
+      "version": "after",
+      "place": "Forest clearing",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 60.01789042862069,
+      "meanMs": 16.661698584512905,
+      "p50Ms": 16.69999999999891,
+      "p95Ms": 17,
+      "p99Ms": 17.200000000000728,
+      "over33ms": 0,
+      "cpuSubmissionMs": 5.009408825764946,
+      "draws": 113,
+      "triangles": 91625,
+      "geometries": 111,
+      "textures": 52,
+      "sections": 67,
+      "regionalInstances": 3790,
+      "grassInstances": 94,
+      "grassDraws": 12,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "As4zmKreO",
+          "jhekTsuE3",
+          "x40kgVD4e"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 13.92901611328125
+    },
+    {
+      "version": "after",
+      "place": "Forest clearing",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 60.01669073664116,
+      "meanMs": 16.66203164029975,
+      "p50Ms": 16.69999999999891,
+      "p95Ms": 17,
+      "p99Ms": 17.100000000002183,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.1820982514720075,
+      "draws": 113,
+      "triangles": 91625,
+      "geometries": 111,
+      "textures": 52,
+      "sections": 67,
+      "regionalInstances": 3790,
+      "grassInstances": 94,
+      "grassDraws": 12,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "86LEdKnEn",
+          "JApOOmGXf",
+          "ylf1Bbtio"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 13.998470306396484
+    },
+    {
+      "version": "before",
+      "place": "Forest clearing",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 60.01729057663573,
+      "meanMs": 16.66186511240633,
+      "p50Ms": 16.69999999999891,
+      "p95Ms": 17,
+      "p99Ms": 17.100000000002183,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.104246461123451,
+      "draws": 114,
+      "triangles": 91745,
+      "geometries": 111,
+      "textures": 52,
+      "sections": 67,
+      "regionalInstances": 4713,
+      "grassInstances": 291,
+      "grassDraws": 17,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "X4bgAcUP-",
+          "bYAmrw9be",
+          "SiYfPmx-v"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 13.994701385498047
+    },
+    {
+      "version": "before",
+      "place": "Forest clearing",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 60.01759050112939,
+      "meanMs": 16.661781848459615,
+      "p50Ms": 16.69999999999709,
+      "p95Ms": 17,
+      "p99Ms": 17.19999999999709,
+      "over33ms": 0,
+      "cpuSubmissionMs": 5.122481265669063,
+      "draws": 114,
+      "triangles": 91745,
+      "geometries": 107,
+      "textures": 52,
+      "sections": 67,
+      "regionalInstances": 4713,
+      "grassInstances": 291,
+      "grassDraws": 17,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "UG9bcGLbs",
+          "KIyuwjFlU",
+          "YR35-s2dB"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 13.95712661743164
+    },
+    {
+      "version": "after",
+      "place": "Forest clearing",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 60.01699065513967,
+      "meanMs": 16.66194837635304,
+      "p50Ms": 16.69999999999709,
+      "p95Ms": 17,
+      "p99Ms": 17.200000000000728,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.952955870207502,
+      "draws": 113,
+      "triangles": 91625,
+      "geometries": 107,
+      "textures": 52,
+      "sections": 67,
+      "regionalInstances": 3790,
+      "grassInstances": 94,
+      "grassDraws": 12,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "jfucag70_",
+          "nmIEAi2z7",
+          "uFMnbuLTU"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 13.959022521972656
+    }
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "date": "2026-10-19T14:28:25.969Z",
+  "hardware": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+    "gpu": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001638) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "threads": 12
+  },
+  "before": "http://127.0.0.1:4175",
+  "cycles": 1,
+  "sampleMs": 20000,
+  "quality": 2,
+  "places": [
+    {
+      "name": "Open meadow",
+      "x": -48,
+      "z": -55,
+      "yaw": 0
+    },
+    {
+      "name": "Village",
+      "x": -10,
+      "z": 17,
+      "yaw": 0.4
+    },
+    {
+      "name": "Riverbank",
+      "x": 18,
+      "z": 35,
+      "yaw": -0.8
+    },
+    {
+      "name": "North Woods",
+      "x": -30,
+      "z": -160,
+      "yaw": 0.1
+    }
+  ],
+  "method": "Headless Chrome; production environment preview; fixed player-height camera; three real Colyseus clients, their avatars rebased into each view; voice/chat and ride rendering excluded. Interleaved version order; same streaming warm-up. CPU submission excludes GPU completion. Geometry/texture counts are allocation proxies, not VRAM bytes.",
+  "errors": [],
+  "samples": [
+    {
+      "version": "before",
+      "place": "Open meadow",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 60.01729057663574,
+      "meanMs": 16.661865112406325,
+      "p50Ms": 16.69999999999709,
+      "p95Ms": 17,
+      "p99Ms": 17.100000000002183,
+      "over33ms": 0,
+      "cpuSubmissionMs": 5.6324729389269885,
+      "draws": 174,
+      "triangles": 92685,
+      "geometries": 152,
+      "textures": 52,
+      "sections": 84,
+      "regionalInstances": 3591,
+      "grassInstances": 820,
+      "grassDraws": 19,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 3,
+        "sessionIds": [
+          "lY_G_vsC5",
+          "5dSYHdhsG",
+          "NyAOyz3-w"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 14.30511474609375
+    },
+    {
+      "version": "before",
+      "place": "Village",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 60.01729057663573,
+      "meanMs": 16.66186511240633,
+      "p50Ms": 16.69999999999709,
+      "p95Ms": 17,
+      "p99Ms": 17.200000000004366,
+      "over33ms": 0,
+      "cpuSubmissionMs": 6.0230641131297835,
+      "draws": 174,
+      "triangles": 195235,
+      "geometries": 163,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2178,
+      "grassInstances": 723,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 3,
+        "sessionIds": [
+          "lY_G_vsC5",
+          "5dSYHdhsG",
+          "NyAOyz3-w"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 14.199604034423828
+    },
+    {
+      "version": "before",
+      "place": "Riverbank",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 60.01729057663571,
+      "meanMs": 16.661865112406335,
+      "p50Ms": 16.69999999999709,
+      "p95Ms": 17,
+      "p99Ms": 17.19999999999709,
+      "over33ms": 0,
+      "cpuSubmissionMs": 5.879184013426452,
+      "draws": 172,
+      "triangles": 98128,
+      "geometries": 193,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2309,
+      "grassInstances": 680,
+      "grassDraws": 18,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 3,
+        "sessionIds": [
+          "lY_G_vsC5",
+          "5dSYHdhsG",
+          "NyAOyz3-w"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 14.376922607421875
+    },
+    {
+      "version": "before",
+      "place": "North Woods",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 60.01759050112938,
+      "meanMs": 16.66178184845962,
+      "p50Ms": 16.69999999999709,
+      "p95Ms": 17,
+      "p99Ms": 17.29999999998836,
+      "over33ms": 0,
+      "cpuSubmissionMs": 5.568526227942216,
+      "draws": 126,
+      "triangles": 101463,
+      "geometries": 179,
+      "textures": 52,
+      "sections": 78,
+      "regionalInstances": 4880,
+      "grassInstances": 291,
+      "grassDraws": 16,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 3,
+        "sessionIds": [
+          "lY_G_vsC5",
+          "5dSYHdhsG",
+          "NyAOyz3-w"
+        ]
+      },
+      "frames": 1201,
+      "jsHeapMB": 14.686389923095703
+    }
+  ]
+}

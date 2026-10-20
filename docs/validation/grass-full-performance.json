@@ -1,0 +1,811 @@
+{
+  "date": "2026-10-20T16:42:48.048Z",
+  "hardware": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+    "gpu": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001638) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "threads": 12
+  },
+  "before": "http://127.0.0.1:4175",
+  "after": "http://127.0.0.1:4176",
+  "cycles": 3,
+  "sampleMs": 20000,
+  "quality": 2,
+  "places": [
+    {
+      "name": "Open meadow",
+      "x": -48,
+      "z": -55,
+      "yaw": 0
+    },
+    {
+      "name": "Village",
+      "x": -10,
+      "z": 17,
+      "yaw": 0.4
+    },
+    {
+      "name": "Riverbank",
+      "x": 18,
+      "z": 35,
+      "yaw": -0.8
+    },
+    {
+      "name": "Forest clearing",
+      "x": -25,
+      "z": -174,
+      "yaw": 0
+    }
+  ],
+  "method": "Headless Chrome; production environment preview; fixed player-height camera; three real Colyseus clients, their avatars rebased into each view; voice/chat and ride rendering excluded. Interleaved version order; same streaming warm-up. CPU submission excludes GPU completion. Geometry/texture counts are allocation proxies, not VRAM bytes.",
+  "errors": [],
+  "samples": [
+    {
+      "version": "before",
+      "place": "Open meadow",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 142.70076823495893,
+      "meanMs": 7.007670753064799,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.200000000000728,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.030998248362917,
+      "draws": 174,
+      "triangles": 92685,
+      "geometries": 149,
+      "textures": 52,
+      "sections": 84,
+      "regionalInstances": 3591,
+      "grassInstances": 820,
+      "grassDraws": 19,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "Tgv0oTPpD",
+          "VzFCt4Tgw",
+          "6KWPN2Cb8"
+        ]
+      },
+      "frames": 2855,
+      "jsHeapMB": 14.306217193603516
+    },
+    {
+      "version": "before",
+      "place": "Village",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 143.90035437773966,
+      "meanMs": 6.949253212921153,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.8901354640711925,
+      "draws": 174,
+      "triangles": 195235,
+      "geometries": 164,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2178,
+      "grassInstances": 723,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "Tgv0oTPpD",
+          "VzFCt4Tgw",
+          "6KWPN2Cb8"
+        ]
+      },
+      "frames": 2879,
+      "jsHeapMB": 14.234638214111328
+    },
+    {
+      "version": "before",
+      "place": "Riverbank",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 143.80038886584123,
+      "meanMs": 6.954084115397987,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7.099999999991269,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.492735487918784,
+      "draws": 172,
+      "triangles": 98128,
+      "geometries": 193,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2309,
+      "grassInstances": 680,
+      "grassDraws": 18,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "Tgv0oTPpD",
+          "VzFCt4Tgw",
+          "6KWPN2Cb8"
+        ]
+      },
+      "frames": 2877,
+      "jsHeapMB": 14.443416595458984
+    },
+    {
+      "version": "before",
+      "place": "Forest clearing",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 143.9503371336888,
+      "meanMs": 6.946840277777781,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.1460069444340966,
+      "draws": 114,
+      "triangles": 91625,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 72,
+      "regionalInstances": 4768,
+      "grassInstances": 291,
+      "grassDraws": 17,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "Tgv0oTPpD",
+          "VzFCt4Tgw",
+          "6KWPN2Cb8"
+        ]
+      },
+      "frames": 2880,
+      "jsHeapMB": 14.511219024658203
+    },
+    {
+      "version": "after",
+      "place": "Open meadow",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 142.45,
+      "meanMs": 7.02000702000702,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 13.700000000000728,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.3267111265584015,
+      "draws": 174,
+      "triangles": 93525,
+      "geometries": 152,
+      "textures": 52,
+      "sections": 84,
+      "regionalInstances": 3264,
+      "grassInstances": 1291,
+      "grassDraws": 19,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "kq7vrvGgS",
+          "MXQ8CjdNm",
+          "NY-HhIB06"
+        ]
+      },
+      "frames": 2849,
+      "jsHeapMB": 14.33260726928711
+    },
+    {
+      "version": "after",
+      "place": "Village",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 143.39856601433988,
+      "meanMs": 6.973570432357042,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.830753138229105,
+      "draws": 174,
+      "triangles": 196085,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 1915,
+      "grassInstances": 1229,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "kq7vrvGgS",
+          "MXQ8CjdNm",
+          "NY-HhIB06"
+        ]
+      },
+      "frames": 2868,
+      "jsHeapMB": 14.36056137084961
+    },
+    {
+      "version": "after",
+      "place": "Riverbank",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 143.60045784204453,
+      "meanMs": 6.9637660981552365,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7.100000000005821,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.077305951995631,
+      "draws": 172,
+      "triangles": 98638,
+      "geometries": 193,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2036,
+      "grassInstances": 1156,
+      "grassDraws": 18,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "kq7vrvGgS",
+          "MXQ8CjdNm",
+          "NY-HhIB06"
+        ]
+      },
+      "frames": 2873,
+      "jsHeapMB": 14.440895080566406
+    },
+    {
+      "version": "after",
+      "place": "Forest clearing",
+      "cycle": 0,
+      "quality": 2,
+      "fps": 143.75040610989203,
+      "meanMs": 6.956502086230879,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.7793810848296934,
+      "draws": 115,
+      "triangles": 91659,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 72,
+      "regionalInstances": 4389,
+      "grassInstances": 305,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "kq7vrvGgS",
+          "MXQ8CjdNm",
+          "NY-HhIB06"
+        ]
+      },
+      "frames": 2876,
+      "jsHeapMB": 14.506961822509766
+    },
+    {
+      "version": "after",
+      "place": "Open meadow",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 143.79999999999998,
+      "meanMs": 6.954102920723228,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000002183,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.038456188931916,
+      "draws": 174,
+      "triangles": 93525,
+      "geometries": 152,
+      "textures": 52,
+      "sections": 84,
+      "regionalInstances": 3264,
+      "grassInstances": 1291,
+      "grassDraws": 19,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "fEhjcx8q2",
+          "CrP8A99bQ",
+          "g6VvUBnAG"
+        ]
+      },
+      "frames": 2876,
+      "jsHeapMB": 14.318954467773438
+    },
+    {
+      "version": "after",
+      "place": "Village",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 141.799291003545,
+      "meanMs": 7.052221438645979,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 13.80000000000291,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.9896332863692,
+      "draws": 174,
+      "triangles": 196085,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 1915,
+      "grassInstances": 1229,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "fEhjcx8q2",
+          "CrP8A99bQ",
+          "g6VvUBnAG"
+        ]
+      },
+      "frames": 2836,
+      "jsHeapMB": 14.23291015625
+    },
+    {
+      "version": "after",
+      "place": "Riverbank",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 143.89928050359745,
+      "meanMs": 6.9493050729673405,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7.100000000005821,
+      "p99Ms": 7.19999999999709,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.9730715774222327,
+      "draws": 172,
+      "triangles": 98638,
+      "geometries": 193,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2036,
+      "grassInstances": 1156,
+      "grassDraws": 18,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "fEhjcx8q2",
+          "CrP8A99bQ",
+          "g6VvUBnAG"
+        ]
+      },
+      "frames": 2878,
+      "jsHeapMB": 14.428020477294922
+    },
+    {
+      "version": "after",
+      "place": "Forest clearing",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 143.95,
+      "meanMs": 6.946856547412296,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.564466828478422,
+      "draws": 115,
+      "triangles": 91659,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 72,
+      "regionalInstances": 4389,
+      "grassInstances": 305,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "fEhjcx8q2",
+          "CrP8A99bQ",
+          "g6VvUBnAG"
+        ]
+      },
+      "frames": 2879,
+      "jsHeapMB": 14.50567626953125
+    },
+    {
+      "version": "before",
+      "place": "Open meadow",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 143.94961763382815,
+      "meanMs": 6.946875,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000002183,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.3888541663996876,
+      "draws": 174,
+      "triangles": 92685,
+      "geometries": 152,
+      "textures": 52,
+      "sections": 84,
+      "regionalInstances": 3591,
+      "grassInstances": 820,
+      "grassDraws": 19,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "AXwNssgf6",
+          "FlcxwBg30",
+          "sA3uvJJ9R"
+        ]
+      },
+      "frames": 2880,
+      "jsHeapMB": 14.311965942382812
+    },
+    {
+      "version": "before",
+      "place": "Village",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 143.75,
+      "meanMs": 6.956521739130435,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 4.708626086908838,
+      "draws": 174,
+      "triangles": 195235,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2178,
+      "grassInstances": 723,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "AXwNssgf6",
+          "FlcxwBg30",
+          "sA3uvJJ9R"
+        ]
+      },
+      "frames": 2875,
+      "jsHeapMB": 14.224403381347656
+    },
+    {
+      "version": "before",
+      "place": "Riverbank",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 140.25,
+      "meanMs": 7.1301247771836005,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7.100000000005821,
+      "p99Ms": 13.89999999999418,
+      "over33ms": 0,
+      "cpuSubmissionMs": 5.0888770058087065,
+      "draws": 172,
+      "triangles": 98128,
+      "geometries": 193,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2309,
+      "grassInstances": 680,
+      "grassDraws": 18,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "AXwNssgf6",
+          "FlcxwBg30",
+          "sA3uvJJ9R"
+        ]
+      },
+      "frames": 2805,
+      "jsHeapMB": 14.419303894042969
+    },
+    {
+      "version": "before",
+      "place": "Forest clearing",
+      "cycle": 1,
+      "quality": 2,
+      "fps": 143.9,
+      "meanMs": 6.949270326615705,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.2958651841556637,
+      "draws": 114,
+      "triangles": 91625,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 72,
+      "regionalInstances": 4768,
+      "grassInstances": 291,
+      "grassDraws": 17,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "AXwNssgf6",
+          "FlcxwBg30",
+          "sA3uvJJ9R"
+        ]
+      },
+      "frames": 2878,
+      "jsHeapMB": 14.515605926513672
+    },
+    {
+      "version": "before",
+      "place": "Open meadow",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 143.75,
+      "meanMs": 6.956521739130435,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000002183,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.395582608803459,
+      "draws": 174,
+      "triangles": 92685,
+      "geometries": 152,
+      "textures": 52,
+      "sections": 84,
+      "regionalInstances": 3591,
+      "grassInstances": 820,
+      "grassDraws": 19,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "Jv-v20Vss",
+          "84l_RwatR",
+          "esLOrXGCI"
+        ]
+      },
+      "frames": 2875,
+      "jsHeapMB": 14.313369750976562
+    },
+    {
+      "version": "before",
+      "place": "Village",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 143.95033713368886,
+      "meanMs": 6.9468402777777785,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.8009722221642734,
+      "draws": 174,
+      "triangles": 195235,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2178,
+      "grassInstances": 723,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "Jv-v20Vss",
+          "84l_RwatR",
+          "esLOrXGCI"
+        ]
+      },
+      "frames": 2880,
+      "jsHeapMB": 14.23434829711914
+    },
+    {
+      "version": "before",
+      "place": "Riverbank",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 142.95,
+      "meanMs": 6.995452955578874,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7.099999999991269,
+      "p99Ms": 7.19999999999709,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.6626792581463326,
+      "draws": 172,
+      "triangles": 98128,
+      "geometries": 193,
+      "textures": 52,
+      "sections": 95,
+      "regionalInstances": 2309,
+      "grassInstances": 680,
+      "grassDraws": 18,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "Jv-v20Vss",
+          "84l_RwatR",
+          "esLOrXGCI"
+        ]
+      },
+      "frames": 2859,
+      "jsHeapMB": 14.40789794921875
+    },
+    {
+      "version": "before",
+      "place": "Forest clearing",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 144,
+      "meanMs": 6.944444444444445,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 2.970729166600439,
+      "draws": 114,
+      "triangles": 91625,
+      "geometries": 165,
+      "textures": 52,
+      "sections": 72,
+      "regionalInstances": 4768,
+      "grassInstances": 291,
+      "grassDraws": 17,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "Jv-v20Vss",
+          "84l_RwatR",
+          "esLOrXGCI"
+        ]
+      },
+      "frames": 2880,
+      "jsHeapMB": 14.50473403930664
+    },
+    {
+      "version": "after",
+      "place": "Open meadow",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 143.9992800036,
+      "meanMs": 6.9444791666666665,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000002183,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.2007291664783324,
+      "draws": 174,
+      "triangles": 93525,
+      "geometries": 146,
+      "textures": 50,
+      "sections": 84,
+      "regionalInstances": 3264,
+      "grassInstances": 1291,
+      "grassDraws": 19,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "xOMcuhPHg",
+          "lTRkwzlm4",
+          "nP1Zhi7Yz"
+        ]
+      },
+      "frames": 2880,
+      "jsHeapMB": 14.290164947509766
+    },
+    {
+      "version": "after",
+      "place": "Village",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 143.84928075359625,
+      "meanMs": 6.951720542231491,
+      "p50Ms": 6.900000000001455,
+      "p95Ms": 7.099999999998545,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.65749044138854,
+      "draws": 174,
+      "triangles": 196085,
+      "geometries": 163,
+      "textures": 51,
+      "sections": 95,
+      "regionalInstances": 1915,
+      "grassInstances": 1229,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "xOMcuhPHg",
+          "lTRkwzlm4",
+          "nP1Zhi7Yz"
+        ]
+      },
+      "frames": 2877,
+      "jsHeapMB": 14.239982604980469
+    },
+    {
+      "version": "after",
+      "place": "Riverbank",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 143.9492802535987,
+      "meanMs": 6.946891281695035,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7.099999999991269,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.6408822505413636,
+      "draws": 172,
+      "triangles": 98638,
+      "geometries": 192,
+      "textures": 51,
+      "sections": 95,
+      "regionalInstances": 2036,
+      "grassInstances": 1156,
+      "grassDraws": 18,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "xOMcuhPHg",
+          "lTRkwzlm4",
+          "nP1Zhi7Yz"
+        ]
+      },
+      "frames": 2879,
+      "jsHeapMB": 14.424659729003906
+    },
+    {
+      "version": "after",
+      "place": "Forest clearing",
+      "cycle": 2,
+      "quality": 2,
+      "fps": 143.9492802535987,
+      "meanMs": 6.946891281695035,
+      "p50Ms": 6.900000000008731,
+      "p95Ms": 7,
+      "p99Ms": 7.100000000005821,
+      "over33ms": 0,
+      "cpuSubmissionMs": 3.664814171690873,
+      "draws": 115,
+      "triangles": 91659,
+      "geometries": 165,
+      "textures": 51,
+      "sections": 72,
+      "regionalInstances": 4389,
+      "grassInstances": 305,
+      "grassDraws": 20,
+      "network": {
+        "clients": 3,
+        "replicatedPlayers": 4,
+        "sessionIds": [
+          "xOMcuhPHg",
+          "lTRkwzlm4",
+          "nP1Zhi7Yz"
+        ]
+      },
+      "frames": 2879,
+      "jsHeapMB": 14.507568359375
+    }
+  ]
+}

@@ -14,6 +14,7 @@ scene.add(map.group,createAtmosphere());
 const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1400);
 const controls=new OrbitControls(camera,renderer.domElement);controls.maxPolarAngle=Math.PI/2-0.04;controls.maxDistance=100;
 let x=0,z=8,quality=2,frameWorkMs=0;
+const frameHooks=new Set<(now:number)=>void>();
 function configure(nextQuality:number,pixelRatio=1){
   quality=Math.max(0,Math.min(2,Math.round(nextQuality)));renderer.setPixelRatio(pixelRatio);
   const shadowSize=quality===0?1024:2048;
@@ -26,7 +27,7 @@ for(const place of places){const b=document.createElement('button');b.textConten
 visit(0,8);
 let reportAt=0;
 renderer.setAnimationLoop(()=>{
-  const now=performance.now();map.update(x,map.collision.groundAt(x,z),z,now,quality);controls.update();renderer.render(scene,camera);
+  const now=performance.now();map.update(x,map.collision.groundAt(x,z),z,now,quality);controls.update();for(const hook of frameHooks)hook(now);renderer.render(scene,camera);
   frameWorkMs=performance.now()-now; // CPU submission time; GPU work is asynchronous.
   if(now>reportAt){reportAt=now+500;document.querySelector('#status')!.textContent=`${world.half*2}m map · ${map.streaming.activeSections} sections · ${renderer.info.render.calls} draws · ${renderer.info.render.triangles.toLocaleString()} triangles · ${map.regional.templateCount} regional assets`;}
 });
@@ -34,3 +35,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 addEventListener('pagehide',()=>{renderer.setAnimationLoop(null);controls.dispose();map.dispose();renderer.dispose();},{once:true});
 // The standalone preview supports automated travel without changing multiplayer movement.
 Object.assign(window,{environmentPreview:{visit,places,map,renderer,configure,get frameWorkMs(){return frameWorkMs;}}});
+// Opt-in validation harness, excluded from the playable game's entry point.
+if(new URLSearchParams(location.search).has('grass-benchmark')) {
+  const {attachGrassBenchmark}=await import('./benchmark/grassScene');
+  const benchmark=await attachGrassBenchmark({scene,camera,controls,map,visit,frameHooks});
+  Object.assign((window as unknown as {environmentPreview:object}).environmentPreview,{benchmark});
+}

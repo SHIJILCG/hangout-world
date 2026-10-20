@@ -1,7 +1,7 @@
 import world from '../../../shared/world.json';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createGrass } from './grass';
+import { createGrass, GRASS_DISTANCES, grassDensityStride } from './grass';
 import { disposeGeometry } from './streaming';
 
 interface PropPolicy {lodDistances:number[];maxDistance:number;castShadow:boolean}
@@ -22,7 +22,6 @@ export class RegionalAssets {
   private loader=new GLTFLoader();
   private activeRequests=0;
   private queue:Array<()=>void>=[];
-  private windUniform={value:0};
   get instanceCount():number {let n=0;this.group.traverse(o=>{if(o instanceof THREE.InstancedMesh)n+=o.count;});return n;}
   get templateCount():number{return this.cache.size;}
 
@@ -83,30 +82,15 @@ export class RegionalAssets {
         if(asset==='lantern')for(const material of materials)if(material instanceof THREE.MeshStandardMaterial){
           material.emissive.setHex(0xffa447);material.emissiveIntensity=0.55;
         }
-        if(asset==='grass')for(const material of materials)if(material instanceof THREE.MeshStandardMaterial){
-          material.onBeforeCompile=shader=>{
-            shader.uniforms.uEnvironmentWind=this.windUniform;
-            shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uEnvironmentWind;');
-            shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
-              #ifdef USE_INSTANCING
-                vec3 windSamplePosition=(instanceMatrix*vec4(position,1.0)).xyz;
-              #else
-                vec3 windSamplePosition=position;
-              #endif
-              float windFlex=clamp(position.y*3.0,0.0,1.0);
-              transformed.x+=sin(uEnvironmentWind*1.3+windSamplePosition.x*0.06+windSamplePosition.z*0.05)*0.10*windFlex;
-              transformed.z+=cos(uEnvironmentWind+windSamplePosition.x*0.035)*0.035*windFlex;`);
-          };
-          material.customProgramCacheKey=()=> 'hangout-grass-wind-v1';
-        }
         // Opaque grass also has baked lower-detail blade counts.
-        const instances=new THREE.InstancedMesh(source.geometry,source.material,list.length);
+        const selected=asset==='grass'?list.filter((_,index)=>index%grassDensityStride(lod)===0):list;
+        const instances=new THREE.InstancedMesh(source.geometry,source.material,selected.length);
         instances.visible=false; // Wait for the next distance selection; never flash all LODs together.
-        list.forEach((p,index)=>{
+        selected.forEach((p,index)=>{
           transform.position.set(p.x,p.y,p.z);transform.rotation.set(0,p.rotation,0);transform.scale.setScalar(p.scale);
           transform.updateMatrix();instances.setMatrixAt(index,transform.matrix);
         });
-        instances.castShadow=(this.catalog[asset]?.castShadow??(asset!=='grass'))&&lod===0;instances.receiveShadow=true;
+        instances.castShadow=asset!=='grass'&&(this.catalog[asset]?.castShadow??true)&&lod===0;instances.receiveShadow=true;
         instances.userData.detail={asset,lod,hasLod:asset==='grass'||asset==='tree'||asset==='apple'||asset.startsWith('forest_')};
         instances.computeBoundingSphere();section.root.add(instances);
       });
@@ -115,7 +99,6 @@ export class RegionalAssets {
   }
   update(keys:Iterable<string>,x:number,z:number,now:number,quality:number):void {
     if(this.stopped||now<this.nextUpdate)return;this.nextUpdate=now+250;
-    this.windUniform.value=quality===0?0:now*0.001;
     const wanted=new Set(keys);
     for(const key of this.sections.keys())if(!wanted.has(key))this.remove(key);
     for(const key of wanted)if(!this.sections.has(key)&&now>=(this.retryAt.get(key)??0))void this.add(key);
@@ -123,6 +106,11 @@ export class RegionalAssets {
       const [cx,cz]=key.split(',').map(Number),distance=Math.hypot(cx*world.sectionSize+world.sectionSize/2-x,cz*world.sectionSize+world.sectionSize/2-z);
       for(const child of section.root.children){
         const {asset,lod,hasLod}=child.userData.detail;
+        if(asset==='grass'){
+          const scaledDistance=distance/(quality===0?.65:quality===1?.85:1);
+          child.visible=scaledDistance>=GRASS_DISTANCES[lod]&&scaledDistance<GRASS_DISTANCES[lod+1];
+          continue;
+        }
         const policy=this.catalog[asset];
         if(policy){
           const selected=policy.lodDistances.filter(limit=>distance>=limit*(quality===0?.75:1)).length;
@@ -132,8 +120,7 @@ export class RegionalAssets {
         const near=distance<(quality===0?30:50);
         const forest=asset.startsWith('forest_');
         const forestLod=distance<(quality===0?24:36)?0:distance<75?1:2;
-        child.visible=asset==='grass'?distance<65&&(lod===(distance<28?0:distance<45?1:2)):
-          forest?distance<160&&lod===forestLod:(!hasLod||lod===(near?0:1));
+        child.visible=forest?distance<160&&lod===forestLod:(!hasLod||lod===(near?0:1));
       }
     }
   }
