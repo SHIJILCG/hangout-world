@@ -4,6 +4,7 @@ export interface NetworkPlayer {
   name: string; colorIndex: number;
   x: number; y: number; z: number; heading: number;
   rideId?: string;
+  fishCaught?: number;
 }
 export interface NetworkRide {x:number;y:number;z:number;heading:number;speed:number;occupant:string;inputSeq:number}
 export interface NetworkState {
@@ -11,6 +12,8 @@ export interface NetworkState {
   ridesVersion?: number;
   cartsVersion?: number;
   rides?: Map<string, NetworkRide>;
+  fishingVersion?: number;
+  fishing?: Map<string,{occupant:string;phase:string}>;
 }
 export type GameRoom = Room<NetworkState>;
 

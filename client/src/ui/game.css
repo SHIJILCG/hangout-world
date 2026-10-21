@@ -12,6 +12,9 @@ button:not(:disabled):hover { filter: brightness(1.14); }
 #world-hud details label { display: block; margin-top: 8px; }
 #world-hud details select { background: #385748; color: #fff5da; border: 1px solid #698474; border-radius: 5px; padding: 4px; }
 #world-hud [hidden] { display: none; }
+#fishing-controls { margin-top: 10px; }
+#fishing-controls button { pointer-events: auto; cursor: pointer; margin: 6px 6px 0 0; padding: 6px 9px;
+  border: 1px solid #698474; border-radius: 6px; background: #385748; color: #fff5da; }
 #game-notice { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); background: #753c30;
   border-radius: 10px; padding: 12px 18px; z-index: 12; max-width: 450px; }
 #roster { position: fixed; right: 20px; top: 20px; background: #203d35ed; padding: 14px;

@@ -9,6 +9,12 @@ export class PlayerState extends Schema {
   @type('float32') z = SPAWN.z;
   @type('float32') heading = 0;
   @type('string') rideId = '';
+  @type('uint32') fishCaught = 0;
+}
+
+export class FishingState extends Schema {
+  @type('string') occupant = '';
+  @type('string') phase = 'idle';
 }
 
 export class RideState extends Schema {
@@ -26,4 +32,6 @@ export class WorldState extends Schema {
   @type('uint8') ridesVersion = 1;
   @type('uint8') cartsVersion = 1;
   @type({ map: RideState }) rides = new MapSchema<RideState>();
+  @type('uint8') fishingVersion = 1;
+  @type({ map: FishingState }) fishing = new MapSchema<FishingState>();
 }

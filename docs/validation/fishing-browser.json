@@ -1,0 +1,49 @@
+{
+  "players": 2,
+  "catches": 1,
+  "messages": [
+    {
+      "id": "q8AhXEsL-",
+      "text": "Line cast. Wait for the bite!"
+    },
+    {
+      "id": "dgcdwMxA-",
+      "text": "This fishing spot is occupied."
+    },
+    {
+      "id": "q8AhXEsL-",
+      "text": "Caught a pond fish! Session total: 1."
+    },
+    {
+      "id": "q8AhXEsL-",
+      "text": "Line cast. Wait for the bite!"
+    },
+    {
+      "id": "q8AhXEsL-",
+      "text": "Line cast. Wait for the bite!"
+    }
+  ],
+  "hidden": {
+    "fps": 143.8,
+    "meanMs": 6.954102920723226,
+    "draws": 188,
+    "triangles": 137115
+  },
+  "visible": {
+    "fps": 144.00127823603432,
+    "meanMs": 6.944382801664352,
+    "draws": 194,
+    "triangles": 137549
+  },
+  "checks": [
+    "F casts",
+    "exclusive shared occupancy",
+    "bite replicated to both peers",
+    "bite UI",
+    "click reels and catch replicates",
+    "cancel frees spot",
+    "walking away frees spot"
+  ],
+  "method": "Dev environment preview using production Fishing component, two real clients with rate-limited scripted movement. Five-second hidden/visible samples are a rendering smoke check, not a full performance benchmark.",
+  "errors": []
+}

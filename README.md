@@ -21,6 +21,8 @@ Built for desktop browsers with **Three.js, TypeScript, Vite, and Colyseus**.
 - **A horse-drawn orchard cart** at (12, -32), with animated wheels and a driver
   bench. Cleared vehicle lanes connect the stable, village, orchard and bridge.
   The bridge has a 6-metre deck and shallow ramps, shared by walkers and carts.
+- **Pond fishing:** three shared shore rods, one player per spot. Cast, wait for
+  a gold float, then reel in. The server controls bites and session catch totals.
 - **Proximity text chat and WebRTC voice:** messages and voice reach only nearby players; voice is opt-in, has mute controls, and uses distance-based volume.
   Bubbles wrap long messages and stay a consistent screen size as the camera
   moves; the chat panel shows the full message.
@@ -45,6 +47,8 @@ configure a TURN relay on the game server for restrictive networks.
 | Jump | `Space` |
 | Mount / dismount a horse or cart | `E` nearby, or its ride button |
 | Steer / trot while mounted | `W`, `A`, `S`, `D` / hold `Shift` |
+| Cast / reel at a pond fishing spot | `F`, or the fishing button |
+| Stop fishing | Walk away, or **Cancel fishing** |
 | Rotate the camera | Click and drag in the world |
 | Zoom | Mouse wheel |
 | Open chat / send a message | `Enter` |

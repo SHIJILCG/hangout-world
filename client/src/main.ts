@@ -22,6 +22,7 @@ import { createVoiceControl, type VoiceControl } from './ui/voiceControl';
 import { PROXIMITY } from './net/proximity';
 import { createGraphics } from './ui/graphics';
 import { HorseRide } from './player/horseRide';
+import { Fishing } from './player/fishing';
 import { RIDE_DEFINITIONS, rideDefinition, riderPose } from '../../shared/rides';
 
 const SEND_EVERY_N_STEPS = 4; // 60 Hz / 4 = 15 Hz
@@ -141,6 +142,8 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
   }, (id, muted) => voice.setPeerMuted(id, muted));
   const rides=RIDE_DEFINITIONS.map(definition=>new HorseRide(map.collision,()=>room,()=>connected&&!chat.isOpen,()=>input.clear(),hud,lifetime.signal,definition));
   rides.forEach(ride=>scene.add(ride.group));
+  const fishing=new Fishing(map.collision,()=>room,()=>connected&&!chat.isOpen,hud,lifetime.signal);
+  scene.add(fishing.group);
   window.addEventListener('pagehide', () => {
     lifetime.abort();
     voice.dispose();
@@ -152,6 +155,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
     graphics.dispose();
     remotes.clear();
     rides.forEach(ride=>ride.dispose());
+    fishing.dispose();
     disposeAvatar(avatar);
     map.dispose();
     renderer.dispose();
@@ -160,6 +164,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
 
   function bindRoom(channel: GameRoom): void {
     rides.forEach(ride=>ride.bind(channel));
+    fishing.bind(channel);
     const $ = getStateCallbacks(channel);
     $(channel.state).players.onAdd((p, sessionId) => {
       roster.add(sessionId, p.name);
@@ -341,6 +346,7 @@ async function start(room: GameRoom, name: string, colorIndex: number): Promise<
     }
 
     const frameDt=Math.min(frameMs/1000,.1);
+    fishing.render(player,connected,now);
     const renderedRides=rides.map(ride=>ride.render(frameDt,player,connected));
     const renderedRide=renderedRides.find(ride=>ride?.occupant===room.sessionId);
     const localSeat=renderedRide?.occupant===room.sessionId&&wasMounted?renderedRide.pose:null;

@@ -7,6 +7,7 @@ import { sanitizeName, clampColorIndex, validateMove, sanitizeChat } from './val
 import { SPAWN, SPAWN_POINTS, MAX_CLIENTS, RECONNECT_GRACE_SECONDS, MAX_SPEED, MOVE_BUDGET_CAP, CHAT_BURST, CHAT_REFILL_MS, PROXIMITY } from './constants';
 import { nearbyPlayerIds } from './proximity';
 import { iceServersFromEnv } from './voiceConfig';
+import { FishingSystem } from './fishing';
 
 interface JoinOptions { name?: unknown; colorIndex?: unknown }
 
@@ -26,6 +27,7 @@ export class WorldRoom extends Room<WorldState> {
   private proximityCapable = new Set<string>();
   private spawnAssignments = new Map<string, number>();
   private rides = new Map<string, RideSystem>();
+  private fishing!:FishingSystem;
 
   onCreate(): void {
     if (WorldRoom.active) throw new ServerError(4210, 'The world is full. Please retry shortly.');
@@ -34,6 +36,9 @@ export class WorldRoom extends Room<WorldState> {
     // briefly empty between players.
     this.autoDispose = false;
     WorldRoom.active = this;
+    this.fishing=new FishingSystem(this.state,(id,text)=>this.clientById(id)?.send('fishing-result',{text}));
+    this.clock.setInterval(()=>this.fishing.tick(Date.now()),100);
+    this.onMessage('fishing-action',(client,message:unknown)=>this.fishing.action(client.sessionId,message,Date.now()));
     for (const definition of RIDE_DEFINITIONS) {
       const ride = new RideState();
       Object.assign(ride,{x:definition.x,z:definition.z,y:rideWorld.groundAt(definition.x,definition.z),heading:definition.heading});
@@ -55,6 +60,7 @@ export class WorldRoom extends Room<WorldState> {
       const system=this.rides.get(id);
       const error=system ? system[action](client.sessionId,player,Date.now()) : 'That ride is unavailable.';
       client.send('ride-result',{error});
+      if(!error&&action==='mount')this.fishing.release(client.sessionId);
       if(!error)this.moveBudget.set(client.sessionId,{budget:0,lastAt:Date.now()});
     });
     this.onMessage('ride-input',(client,message:unknown)=>{
@@ -158,6 +164,7 @@ export class WorldRoom extends Room<WorldState> {
   }
 
   async onLeave(client: Client, consented: boolean): Promise<void> {
+    this.fishing.leave(client.sessionId);
     // Audio must stop immediately when a tab/socket disappears; a successful
     // reconnect re-advertises voice readiness from the client.
     this.removeVoiceRelationships(client.sessionId);
